@@ -22,7 +22,7 @@
 #include <ap_int.h>
 
 #include "hls_snap.H"
-#include <computing_common.h> /* Computing Job definition */
+#include "computing_common.h" /* Computing Job definition */
 
 //--------------------------------------------------------------------
 // 22: simplify the data casting style
