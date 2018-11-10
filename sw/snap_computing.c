@@ -16391,7 +16391,7 @@ static int VP8EncTokenLoop(VP8Encoder* const enc) {
 
 	int rc = 0;
 	struct timeval etime, stime;
-	unsigned long timeout = 600;
+	unsigned long timeout = 6000000;
 
 	// Collect the timestamp BEFORE the call of the action
 	gettimeofday(&stime, NULL);

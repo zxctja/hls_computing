@@ -1639,9 +1639,11 @@ void VP8IteratorSaveBoundary_snap(uint8_t mbtype, int x, int y, int mb_w, int mb
 
   if (x < mb_w - 1) {   // left
     for (i = 0; i < 16; ++i) {
+//#pragma HLS unroll
     	left_y[i] = ysrc[15 + i * 16];
     }
     for (i = 0; i < 8; ++i) {
+//#pragma HLS unroll
     	left_u[i] = uvsrc[7 + i * 16];
     	left_v[i] = uvsrc[15 + i * 16];
     }
@@ -1652,9 +1654,11 @@ void VP8IteratorSaveBoundary_snap(uint8_t mbtype, int x, int y, int mb_w, int mb
   }
   else{
 	for (i = 0; i < 16; ++i) {
+//#pragma HLS unroll
 		left_y[i] = 129;
 	}
 	for (i = 0; i < 8; ++i) {
+//#pragma HLS unroll
 		left_u[i] = 129;
 		left_v[i] = 129;
 	}
@@ -1666,9 +1670,11 @@ void VP8IteratorSaveBoundary_snap(uint8_t mbtype, int x, int y, int mb_w, int mb
 
   if (y < mb_h - 1) {  // top mem
 	for (i = 0; i < 16; ++i) {
+//#pragma HLS unroll
 		mem_top_y[x][i] = ysrc[15 * 16 + i];
 	}
 	for (i = 0; i < 8; ++i) {
+//#pragma HLS unroll
 	  	mem_top_u[x][i] = uvsrc[7 * 16 + i];
 	  	mem_top_v[x][i] = uvsrc[7 * 16 + i + 8];
 	}
@@ -1678,171 +1684,552 @@ void VP8IteratorSaveBoundary_snap(uint8_t mbtype, int x, int y, int mb_w, int mb
   int tmp_p = (x + 1 < mb_w - 1) ?  x + 2 : (x < mb_w - 1) ? 0 : 1;
 
 	for (i = 0; i < 16; ++i) {
+//#pragma HLS unroll
 		top_y_tmp2[i] = top_y_tmp1[i];
 		top_y_tmp1[i] = mem_top_y[tmp_p][i];
 	}
 
   if ((y == 0)&&(x < mb_w - 1)) {  // top
 	for (i = 0; i < 20; ++i) {
+//#pragma HLS unroll
 		top_y[i] = 127;
 	}
 	for (i = 0; i < 8; ++i) {
+//#pragma HLS unroll
 	  	top_u[i] = 127;
 	  	top_v[i] = 127;
 	}
   }
   else {  // top
 	for (i = 0; i < 16; ++i) {
+//#pragma HLS unroll
 		top_y[i] = top_y_tmp2[i];
 	}
 	for (i = 0; i < 8; ++i) {
+//#pragma HLS unroll
 		top_u[i] = mem_top_u[tmp][i];
 		top_v[i] = mem_top_v[tmp][i];
 	}
 	if (x == mb_w - 2) {
 		for (i = 0; i < 4; ++i) {
+//#pragma HLS unroll
 			top_y[16 + i] = top_y[15];
 		}
 	} else {
 		for (i = 0; i < 4; ++i) {
+//#pragma HLS unroll
 			top_y[16 + i] = top_y_tmp1[i];
 		}		
 	}
   }
 }
 
-void SegmentInfoLoad(VP8SegmentInfo* dqm, uint16_t dqm_tmp[384]){
+void SegmentInfoLoad(VP8SegmentInfo* dqm, snap_membus_t dqm_tmp[12]){
 	int i;
 
 	for(i=0;i<16;i++){
-		dqm->y1_.q_[i] = dqm_tmp[i];
-		dqm->y1_.iq_[i] = dqm_tmp[16+i];
-		dqm->y1_.bias_[i] = (dqm_tmp[32+2*i] | dqm_tmp[32+2*i+1] <<16);
-		dqm->y1_.zthresh_[i] = (dqm_tmp[64+2*i] | dqm_tmp[64+2*i+1] <<16);
-		dqm->y1_.sharpen_[i] = dqm_tmp[96+i];
+#pragma HLS unroll
+		dqm->y1_.q_[i] = dqm_tmp[0] >> (16 * i);
+		dqm->y1_.iq_[i] = dqm_tmp[0] >> (16 * i + 256);
+		dqm->y1_.bias_[i] = dqm_tmp[1] >> (32 * i);
+		dqm->y1_.zthresh_[i] = dqm_tmp[2] >> (32 * i);
+		dqm->y1_.sharpen_[i] = dqm_tmp[3] >> (16 * i);
 		
-		dqm->y2_.q_[i] = dqm_tmp[112+i];
-		dqm->y2_.iq_[i] = dqm_tmp[112+16+i];
-		dqm->y2_.bias_[i] = (dqm_tmp[112+32+2*i] | dqm_tmp[112+32+2*i+1] <<16);
-		dqm->y2_.zthresh_[i] = (dqm_tmp[112+64+2*i] | dqm_tmp[112+64+2*i+1] <<16);
-		dqm->y2_.sharpen_[i] = dqm_tmp[112+96+i];
+		dqm->y2_.q_[i] = dqm_tmp[3] >> (16 * i + 256);
+		dqm->y2_.iq_[i] = dqm_tmp[4] >> (16 * i);
+		dqm->y2_.sharpen_[i] = dqm_tmp[6] >> (16 * i + 256);
 		
-		dqm->uv_.q_[i] = dqm_tmp[224+i];
-		dqm->uv_.iq_[i] = dqm_tmp[224+16+i];
-		dqm->uv_.bias_[i] = (dqm_tmp[224+32+2*i] | dqm_tmp[112+32+2*i+1] <<16);
-		dqm->uv_.zthresh_[i] = (dqm_tmp[224+64+2*i] | dqm_tmp[112+64+2*i+1] <<16);
-		dqm->uv_.sharpen_[i] = dqm_tmp[224+96+i];
+		dqm->uv_.q_[i] = dqm_tmp[7] >> (16 * i);
+		dqm->uv_.iq_[i] = dqm_tmp[7] >> (16 * i + 256);
+		dqm->uv_.bias_[i] = dqm_tmp[8] >> (32 * i);
+		dqm->uv_.zthresh_[i] = dqm_tmp[9] >> (32 * i);
+		dqm->uv_.sharpen_[i] = dqm_tmp[10] >> (16 * i);
+	}
+	
+	for(i=0;i<8;i++){
+#pragma HLS unroll
+		dqm->y2_.bias_[i] = dqm_tmp[4] >> (32 * i + 256);
+		dqm->y2_.bias_[8 + i] = dqm_tmp[5] >> (32 * i);
+		dqm->y2_.zthresh_[i] = dqm_tmp[5] >> (32 * i + 256);
+		dqm->y2_.zthresh_[8 + i] = dqm_tmp[6] >> (32 * i);
 	}
 
-	dqm->max_edge_ = 0;
-	dqm->lambda_i16_ = (dqm_tmp[348] | dqm_tmp[349] <<16);
-	dqm->lambda_i4_ = (dqm_tmp[350] | dqm_tmp[351] <<16);
-	dqm->lambda_uv_ = (dqm_tmp[352] | dqm_tmp[353] <<16);
-	dqm->lambda_mode_ = (dqm_tmp[354] | dqm_tmp[355] <<16);
-	dqm->tlambda_ = (dqm_tmp[358] | dqm_tmp[359] <<16);
+	dqm->max_edge_ = dqm_tmp[10] >> 384;
+	dqm->lambda_i16_ = dqm_tmp[10] >> 448;
+	dqm->lambda_i4_ = dqm_tmp[10] >> 480;
+	dqm->lambda_uv_ = dqm_tmp[11];
+	dqm->lambda_mode_ = dqm_tmp[11] >> 32;
+	dqm->tlambda_ = dqm_tmp[11] >> 96;
 }
 
-void DATALoad(DATA_O* data_o, uint8_t data_tmp[14*64]){
+void DATALoad(DATA_O* data_o, snap_membus_t data_tmp[14]){
+
+	data_tmp[0] = ((snap_membus_t)(ap_uint<64>)(data_o->info.D));
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.SD)) << 64;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.H)) << 128;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.R)) << 192;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.score)) << 256;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[0 ])) << 320;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[1 ])) << 336;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[2 ])) << 352;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[3 ])) << 368;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[4 ])) << 384;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[5 ])) << 400;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[6 ])) << 416;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[7 ])) << 432;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[8 ])) << 448;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[9 ])) << 464;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[10])) << 480;
+	
+	data_tmp[1] = ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[12])) << 0  ;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[13])) << 16 ;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[14])) << 32 ;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[15])) << 48 ;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][0 ])) << 64 ;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][1 ])) << 80 ;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][2 ])) << 96 ;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][3 ])) << 112;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][4 ])) << 128;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][5 ])) << 144;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][6 ])) << 160;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][7 ])) << 176;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][8 ])) << 192;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][9 ])) << 208;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][10])) << 224;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][11])) << 240;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][12])) << 256;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][13])) << 272;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][14])) << 288;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[0 ][15])) << 304;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][0 ])) << 320;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][1 ])) << 336;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][2 ])) << 352;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][3 ])) << 368;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][4 ])) << 384;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][5 ])) << 400;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][6 ])) << 416;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][7 ])) << 432;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][8 ])) << 448;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][9 ])) << 464;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][10])) << 480;
+	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][11])) << 496;
+	
+	data_tmp[2] = ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][12])) << 0  ;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][13])) << 16 ;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][14])) << 32 ;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[1 ][15])) << 48 ;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][0 ])) << 64 ;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][1 ])) << 80 ;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][2 ])) << 96 ;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][3 ])) << 112;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][4 ])) << 128;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][5 ])) << 144;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][6 ])) << 160;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][7 ])) << 176;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][8 ])) << 192;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][9 ])) << 208;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][10])) << 224;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][11])) << 240;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][12])) << 256;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][13])) << 272;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][14])) << 288;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[2 ][15])) << 304;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][0 ])) << 320;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][1 ])) << 336;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][2 ])) << 352;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][3 ])) << 368;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][4 ])) << 384;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][5 ])) << 400;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][6 ])) << 416;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][7 ])) << 432;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][8 ])) << 448;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][9 ])) << 464;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][10])) << 480;
+	data_tmp[2] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][11])) << 496;
+	
+	data_tmp[3] = ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][12])) << 0  ;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][13])) << 16 ;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][14])) << 32 ;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[3 ][15])) << 48 ;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][0 ])) << 64 ;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][1 ])) << 80 ;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][2 ])) << 96 ;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][3 ])) << 112;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][4 ])) << 128;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][5 ])) << 144;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][6 ])) << 160;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][7 ])) << 176;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][8 ])) << 192;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][9 ])) << 208;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][10])) << 224;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][11])) << 240;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][12])) << 256;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][13])) << 272;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][14])) << 288;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[4 ][15])) << 304;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][0 ])) << 320;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][1 ])) << 336;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][2 ])) << 352;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][3 ])) << 368;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][4 ])) << 384;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][5 ])) << 400;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][6 ])) << 416;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][7 ])) << 432;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][8 ])) << 448;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][9 ])) << 464;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][10])) << 480;
+	data_tmp[3] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][11])) << 496;
+	
+	data_tmp[4] = ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][12])) << 0  ;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][13])) << 16 ;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][14])) << 32 ;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[5 ][15])) << 48 ;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][0 ])) << 64 ;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][1 ])) << 80 ;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][2 ])) << 96 ;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][3 ])) << 112;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][4 ])) << 128;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][5 ])) << 144;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][6 ])) << 160;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][7 ])) << 176;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][8 ])) << 192;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][9 ])) << 208;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][10])) << 224;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][11])) << 240;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][12])) << 256;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][13])) << 272;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][14])) << 288;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[6 ][15])) << 304;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][0 ])) << 320;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][1 ])) << 336;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][2 ])) << 352;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][3 ])) << 368;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][4 ])) << 384;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][5 ])) << 400;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][6 ])) << 416;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][7 ])) << 432;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][8 ])) << 448;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][9 ])) << 464;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][10])) << 480;
+	data_tmp[4] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][11])) << 496;
+	
+	data_tmp[5] = ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][12])) << 0  ;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][13])) << 16 ;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][14])) << 32 ;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[7 ][15])) << 48 ;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][0 ])) << 64 ;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][1 ])) << 80 ;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][2 ])) << 96 ;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][3 ])) << 112;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][4 ])) << 128;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][5 ])) << 144;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][6 ])) << 160;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][7 ])) << 176;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][8 ])) << 192;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][9 ])) << 208;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][10])) << 224;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][11])) << 240;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][12])) << 256;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][13])) << 272;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][14])) << 288;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[8 ][15])) << 304;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][0 ])) << 320;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][1 ])) << 336;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][2 ])) << 352;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][3 ])) << 368;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][4 ])) << 384;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][5 ])) << 400;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][6 ])) << 416;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][7 ])) << 432;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][8 ])) << 448;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][9 ])) << 464;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][10])) << 480;
+	data_tmp[5] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][11])) << 496;
+	
+	data_tmp[6] = ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][12])) << 0  ;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][13])) << 16 ;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][14])) << 32 ;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[9 ][15])) << 48 ;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][0 ])) << 64 ;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][1 ])) << 80 ;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][2 ])) << 96 ;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][3 ])) << 112;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][4 ])) << 128;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][5 ])) << 144;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][6 ])) << 160;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][7 ])) << 176;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][8 ])) << 192;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][9 ])) << 208;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][10])) << 224;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][11])) << 240;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][12])) << 256;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][13])) << 272;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][14])) << 288;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[10][15])) << 304;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][0 ])) << 320;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][1 ])) << 336;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][2 ])) << 352;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][3 ])) << 368;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][4 ])) << 384;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][5 ])) << 400;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][6 ])) << 416;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][7 ])) << 432;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][8 ])) << 448;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][9 ])) << 464;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][10])) << 480;
+	data_tmp[6] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][11])) << 496;
+	
+	data_tmp[7] = ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][12])) << 0  ;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][13])) << 16 ;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][14])) << 32 ;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[11][15])) << 48 ;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][0 ])) << 64 ;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][1 ])) << 80 ;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][2 ])) << 96 ;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][3 ])) << 112;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][4 ])) << 128;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][5 ])) << 144;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][6 ])) << 160;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][7 ])) << 176;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][8 ])) << 192;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][9 ])) << 208;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][10])) << 224;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][11])) << 240;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][12])) << 256;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][13])) << 272;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][14])) << 288;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[12][15])) << 304;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][0 ])) << 320;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][1 ])) << 336;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][2 ])) << 352;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][3 ])) << 368;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][4 ])) << 384;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][5 ])) << 400;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][6 ])) << 416;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][7 ])) << 432;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][8 ])) << 448;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][9 ])) << 464;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][10])) << 480;
+	data_tmp[7] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][11])) << 496;
+	
+	data_tmp[8] = ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][12])) << 0  ;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][13])) << 16 ;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][14])) << 32 ;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[13][15])) << 48 ;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][0 ])) << 64 ;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][1 ])) << 80 ;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][2 ])) << 96 ;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][3 ])) << 112;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][4 ])) << 128;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][5 ])) << 144;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][6 ])) << 160;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][7 ])) << 176;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][8 ])) << 192;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][9 ])) << 208;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][10])) << 224;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][11])) << 240;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][12])) << 256;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][13])) << 272;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][14])) << 288;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[14][15])) << 304;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][0 ])) << 320;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][1 ])) << 336;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][2 ])) << 352;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][3 ])) << 368;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][4 ])) << 384;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][5 ])) << 400;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][6 ])) << 416;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][7 ])) << 432;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][8 ])) << 448;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][9 ])) << 464;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][10])) << 480;
+	data_tmp[8] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][11])) << 496;
+	
+	data_tmp[9] = ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][12])) << 0  ;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][13])) << 16 ;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][14])) << 32 ;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_ac_levels[15][15])) << 48 ;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][0 ])) << 64 ;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][1 ])) << 80 ;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][2 ])) << 96 ;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][3 ])) << 112;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][4 ])) << 128;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][5 ])) << 144;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][6 ])) << 160;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][7 ])) << 176;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][8 ])) << 192;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][9 ])) << 208;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][10])) << 224;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][11])) << 240;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][12])) << 256;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][13])) << 272;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][14])) << 288;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[0 ][15])) << 304;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][0 ])) << 320;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][1 ])) << 336;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][2 ])) << 352;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][3 ])) << 368;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][4 ])) << 384;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][5 ])) << 400;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][6 ])) << 416;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][7 ])) << 432;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][8 ])) << 448;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][9 ])) << 464;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][10])) << 480;
+	data_tmp[9] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][11])) << 496;
+
+	data_tmp[10] = ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][12])) << 0  ;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][13])) << 16 ;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][14])) << 32 ;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[1 ][15])) << 48 ;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][0 ])) << 64 ;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][1 ])) << 80 ;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][2 ])) << 96 ;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][3 ])) << 112;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][4 ])) << 128;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][5 ])) << 144;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][6 ])) << 160;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][7 ])) << 176;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][8 ])) << 192;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][9 ])) << 208;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][10])) << 224;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][11])) << 240;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][12])) << 256;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][13])) << 272;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][14])) << 288;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[2 ][15])) << 304;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][0 ])) << 320;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][1 ])) << 336;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][2 ])) << 352;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][3 ])) << 368;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][4 ])) << 384;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][5 ])) << 400;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][6 ])) << 416;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][7 ])) << 432;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][8 ])) << 448;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][9 ])) << 464;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][10])) << 480;
+	data_tmp[10] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][11])) << 496;
+	
+	data_tmp[11] = ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][12])) << 0  ;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][13])) << 16 ;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][14])) << 32 ;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[3 ][15])) << 48 ;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][0 ])) << 64 ;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][1 ])) << 80 ;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][2 ])) << 96 ;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][3 ])) << 112;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][4 ])) << 128;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][5 ])) << 144;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][6 ])) << 160;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][7 ])) << 176;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][8 ])) << 192;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][9 ])) << 208;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][10])) << 224;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][11])) << 240;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][12])) << 256;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][13])) << 272;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][14])) << 288;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[4 ][15])) << 304;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][0 ])) << 320;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][1 ])) << 336;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][2 ])) << 352;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][3 ])) << 368;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][4 ])) << 384;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][5 ])) << 400;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][6 ])) << 416;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][7 ])) << 432;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][8 ])) << 448;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][9 ])) << 464;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][10])) << 480;
+	data_tmp[11] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][11])) << 496;
+	
+	data_tmp[12] = ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][12])) << 0  ;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][13])) << 16 ;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][14])) << 32 ;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[5 ][15])) << 48 ;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][0 ])) << 64 ;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][1 ])) << 80 ;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][2 ])) << 96 ;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][3 ])) << 112;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][4 ])) << 128;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][5 ])) << 144;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][6 ])) << 160;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][7 ])) << 176;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][8 ])) << 192;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][9 ])) << 208;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][10])) << 224;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][11])) << 240;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][12])) << 256;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][13])) << 272;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][14])) << 288;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[6 ][15])) << 304;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][0 ])) << 320;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][1 ])) << 336;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][2 ])) << 352;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][3 ])) << 368;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][4 ])) << 384;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][5 ])) << 400;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][6 ])) << 416;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][7 ])) << 432;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][8 ])) << 448;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][9 ])) << 464;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][10])) << 480;
+	data_tmp[12] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][11])) << 496;
+	
+	data_tmp[13] = ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][12])) << 0  ;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][13])) << 16 ;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][14])) << 32 ;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.uv_levels[7 ][15])) << 48 ;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<32>)(data_o->info.mode_i16)) << 64 ;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[0 ])) << 96 ;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[1 ])) << 104;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[2 ])) << 112;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[3 ])) << 120;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[4 ])) << 128;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[5 ])) << 136;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[6 ])) << 144;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[7 ])) << 152;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[8 ])) << 160;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[9 ])) << 168;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[10])) << 176;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[11])) << 184;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[12])) << 192;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[13])) << 200;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[14])) << 208;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.modes_i4[15])) << 216;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<32>)(data_o->info.mode_uv)) << 224;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<32>)(data_o->info.nz)) << 256;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.derr[0][0])) << 288;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.derr[0][1])) << 296;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.derr[0][2])) << 304;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.derr[1][0])) << 312;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.derr[1][1])) << 320;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->info.derr[1][2])) << 328;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->mbtype)) << 384;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<8>)(data_o->is_skipped)) << 392;
+	data_tmp[13] |= ((snap_membus_t)(ap_uint<32>)(data_o->max_edge_)) << 416;
+
+}
+
+void YUVLoad(snap_membus_t YUVin[6], uint8_t Yin[16*16], uint8_t UVin[8*16]){
 	int i, j;
 
-	data_tmp[0] = (uint8_t)data_o->info.D;
-	data_tmp[1] = (uint8_t)(data_o->info.D >> 8 );
-	data_tmp[2] = (uint8_t)(data_o->info.D >> 16);
-	data_tmp[3] = (uint8_t)(data_o->info.D >> 24);
-	data_tmp[4] = (uint8_t)(data_o->info.D >> 32);
-	data_tmp[5] = (uint8_t)(data_o->info.D >> 40);
-	data_tmp[6] = (uint8_t)(data_o->info.D >> 48);
-	data_tmp[7] = (uint8_t)(data_o->info.D >> 56);
-	
-	data_tmp[ 8] = (uint8_t)data_o->info.SD;
-	data_tmp[ 9] = (uint8_t)(data_o->info.SD >> 8 );
-	data_tmp[10] = (uint8_t)(data_o->info.SD >> 16);
-	data_tmp[11] = (uint8_t)(data_o->info.SD >> 24);
-	data_tmp[12] = (uint8_t)(data_o->info.SD >> 32);
-	data_tmp[13] = (uint8_t)(data_o->info.SD >> 40);
-	data_tmp[14] = (uint8_t)(data_o->info.SD >> 48);
-	data_tmp[15] = (uint8_t)(data_o->info.SD >> 56);
-	
-	data_tmp[16] = (uint8_t)data_o->info.H;
-	data_tmp[17] = (uint8_t)(data_o->info.H >> 8 );
-	data_tmp[18] = (uint8_t)(data_o->info.H >> 16);
-	data_tmp[19] = (uint8_t)(data_o->info.H >> 24);
-	data_tmp[20] = (uint8_t)(data_o->info.H >> 32);
-	data_tmp[21] = (uint8_t)(data_o->info.H >> 40);
-	data_tmp[22] = (uint8_t)(data_o->info.H >> 48);
-	data_tmp[23] = (uint8_t)(data_o->info.H >> 56);
-	
-	data_tmp[24] = (uint8_t)data_o->info.R;
-	data_tmp[25] = (uint8_t)(data_o->info.R >> 8 );
-	data_tmp[26] = (uint8_t)(data_o->info.R >> 16);
-	data_tmp[27] = (uint8_t)(data_o->info.R >> 24);
-	data_tmp[28] = (uint8_t)(data_o->info.R >> 32);
-	data_tmp[29] = (uint8_t)(data_o->info.R >> 40);
-	data_tmp[30] = (uint8_t)(data_o->info.R >> 48);
-	data_tmp[31] = (uint8_t)(data_o->info.R >> 56);
-	
-	data_tmp[32] = (uint8_t)data_o->info.score;
-	data_tmp[33] = (uint8_t)(data_o->info.score >> 8 );
-	data_tmp[34] = (uint8_t)(data_o->info.score >> 16);
-	data_tmp[35] = (uint8_t)(data_o->info.score >> 24);
-	data_tmp[36] = (uint8_t)(data_o->info.score >> 32);
-	data_tmp[37] = (uint8_t)(data_o->info.score >> 40);
-	data_tmp[38] = (uint8_t)(data_o->info.score >> 48);
-	data_tmp[39] = (uint8_t)(data_o->info.score >> 56);
-	
-	for(i=0;i<16;i++){
-		data_tmp[40+2*i] = (uint8_t)data_o->info.y_dc_levels[i];
-		data_tmp[40+2*i+1] = (uint8_t)(data_o->info.y_dc_levels[i] >> 8);
-	}
-	
-	for(j=0;j<16;j++){
-		for(i=0;i<16;i++){
-			data_tmp[32*j+72+2*i] = (uint8_t)data_o->info.y_ac_levels[j][i];
-			data_tmp[32*j+72+2*i+1] = (uint8_t)(data_o->info.y_ac_levels[j][i] >> 8);
+	for(j=0;j<4;j++){
+#pragma HLS unroll
+		for(i=0;i<64;i++){
+#pragma HLS unroll
+			Yin[64 * j + i] = YUVin[j] >> (8 * i);
 		}
 	}
-	
-	for(j=0;j<8;j++){
-		for(i=0;i<16;i++){
-			data_tmp[32*j+584+2*i] = (uint8_t)data_o->info.uv_levels[j][i];
-			data_tmp[32*j+584+2*i+1] = (uint8_t)(data_o->info.uv_levels[j][i] >> 8);
-		}
-	}
-	
-	data_tmp[840] = (uint8_t)data_o->info.mode_i16;
-	data_tmp[841] = (uint8_t)(data_o->info.mode_i16 >> 8 );
-	data_tmp[842] = (uint8_t)(data_o->info.mode_i16 >> 16);
-	data_tmp[843] = (uint8_t)(data_o->info.mode_i16 >> 24);
-	
-	for(i=0;i<16;i++){
-		data_tmp[844+i] = (uint8_t)data_o->info.modes_i4[i];
-	}
-	
-	data_tmp[860] = (uint8_t)data_o->info.mode_uv;
-	data_tmp[861] = (uint8_t)(data_o->info.mode_uv >> 8 );
-	data_tmp[862] = (uint8_t)(data_o->info.mode_uv >> 16);
-	data_tmp[863] = (uint8_t)(data_o->info.mode_uv >> 24);
-	
-	data_tmp[864] = (uint8_t)data_o->info.nz;
-	data_tmp[865] = (uint8_t)(data_o->info.nz >> 8 );
-	data_tmp[866] = (uint8_t)(data_o->info.nz >> 16);
-	data_tmp[867] = (uint8_t)(data_o->info.nz >> 24);
 	
 	for(j=0;j<2;j++){
-		for(i=0;i<3;i++){
-			data_tmp[3*j+868+i] = (uint8_t)data_o->info.derr[j][i];
+#pragma HLS unroll
+		for(i=0;i<64;i++){
+#pragma HLS unroll
+			UVin[64 * j + i] = YUVin[4 + j] >> (8 * i);
 		}
 	}
-	
-	data_tmp[880] = (uint8_t)data_o->mbtype;
-	
-	data_tmp[881] = (uint8_t)data_o->is_skipped;
-	
-	data_tmp[884] = (uint8_t)data_o->max_edge_;
-	data_tmp[885] = (uint8_t)(data_o->max_edge_ >> 8 );
-	data_tmp[886] = (uint8_t)(data_o->max_edge_ >> 16);
-	data_tmp[887] = (uint8_t)(data_o->max_edge_ >> 24);
-	
 }
 
 //----------------------------------------------------------------------
@@ -1855,7 +2242,6 @@ static int process_action(snap_membus_t *din_gmem,
 {
 	uint8_t Yin[16*16];
 	uint8_t UVin[8*16];
-	uint8_t YUVin[16*16+8*16];
 	uint8_t Yout16[16*16];
 	uint8_t Yout4[16*16];
 	uint8_t UVout[8*16];
@@ -1873,20 +2259,45 @@ static int process_action(snap_membus_t *din_gmem,
 	uint8_t mem_top_y[1024][16];
 	uint8_t mem_top_u[1024][8];
 	uint8_t mem_top_v[1024][8];
+	snap_membus_t YUVin[6];
+	snap_membus_t dqm_tmp[12];
+	snap_membus_t data_tmp[14];
 	DError top_derr[1024] = {0};
 	DError left_derr = {0};
 	VP8SegmentInfo dqm;
-	uint16_t dqm_tmp[384];
+	DATA_O data_o;
 	int x = 0;
 	int y = 0;
 	int mb_w;
 	int mb_h;
-	DATA_O data_o;
-	uint8_t data_tmp[14*64];
 	uint64_t i_idx, o_idx, dqm_idx;		
 	int i, j;
 	
+#pragma HLS ARRAY_PARTITION variable=YUVin complete dim=1
+#pragma HLS ARRAY_PARTITION variable=UVin complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=UVout complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=Yout16 complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=Yout4 complete dim=1
+#pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
+#pragma HLS ARRAY_PARTITION variable=data_o.info.y_ac_levels complete dim=0
+#pragma HLS ARRAY_PARTITION variable=data_o.info.y_dc_levels complete dim=1
+#pragma HLS ARRAY_PARTITION variable=data_o.info.uv_levels complete dim=0
+//#pragma HLS ARRAY_PARTITION variable=left_y complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=left_u complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=left_v complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=top_y complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=top_u complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=top_v complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=top_y_tmp1 complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=top_y_tmp2 complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=mem_top_y complete dim=2
+//#pragma HLS ARRAY_PARTITION variable=mem_top_u complete dim=2
+//#pragma HLS ARRAY_PARTITION variable=mem_top_v complete dim=2
+//#pragma HLS ARRAY_PARTITION variable=top_derr complete dim=2
+//#pragma HLS ARRAY_PARTITION variable=top_derr complete dim=3
+//#pragma HLS ARRAY_PARTITION variable=left_derr complete dim=0
 #pragma HLS ARRAY_PARTITION variable=dqm_tmp complete dim=1
+#pragma HLS ARRAY_PARTITION variable=data_tmp complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm.y1_.sharpen_ complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm.y1_.zthresh_ complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm.y1_.bias_ complete dim=1
@@ -1910,14 +2321,17 @@ static int process_action(snap_membus_t *din_gmem,
 	mb_h = act_reg->Data.mb_h;
 	
 	for(i=0;i<20;i++){
+//#pragma HLS unroll
 	  top_y[i] = 127;
 	}
 	
 	for(i=0;i<16;i++){
+//#pragma HLS unroll
 	  left_y[i] = 129;
 	}
 
 	for(i=0;i<8;i++){
+//#pragma HLS unroll
 	  top_u[i] = 127;
 	  top_v[i] = 127;
 	  left_u[i] = 129;
@@ -1926,7 +2340,7 @@ static int process_action(snap_membus_t *din_gmem,
 
 	for(i=0;i<12;i++){//12 is sizeof(dqm)/64
 #pragma HLS pipeline
-		((snap_membus_t *)dqm_tmp)[i] = (din_gmem + dqm_idx)[i];
+		dqm_tmp[i] = (din_gmem + dqm_idx)[i];
 	}
 
 	SegmentInfoLoad(&dqm, dqm_tmp);
@@ -1937,16 +2351,10 @@ static int process_action(snap_membus_t *din_gmem,
 
 		for(i=0;i<6;i++){//6 is sizeof(Yin + UVin)/64
 #pragma HLS pipeline
-		  ((snap_membus_t *)YUVin)[i] = (din_gmem + i_idx + (y * mb_w + x) * 6)[i];
+			YUVin[i] = (din_gmem + i_idx + (y * mb_w + x) * 6)[i];
 		}
 
-		for(i=0;i<256;i++){
-			Yin[i] = YUVin[i];
-		}
-
-		for(i=0;i<128;i++){
-			UVin[i] = YUVin[256+i];
-		}
+		YUVLoad(YUVin, Yin, UVin);
 
 		VP8Decimate_snap(Yin, Yout16, Yout4, &dqm, UVin, UVout, &data_o.is_skipped, left_y,
 			top_y, top_left_y, &data_o.mbtype, left_u, top_u, top_left_u, left_v, top_v, 
@@ -1961,13 +2369,16 @@ static int process_action(snap_membus_t *din_gmem,
 		DATALoad(&data_o, data_tmp);
 
 		for(i=0;i<14;i++){//14 is sizeof(data_o)/64
-		  (dout_gmem + o_idx + (y * mb_w + x) * 6)[i] = ((snap_membus_t *)data_tmp)[i];
+#pragma HLS pipeline
+		  (dout_gmem + o_idx + (y * mb_w + x) * 14)[i] = data_tmp[i];
 		}
 		
 	  }
 	  
 	  for(j=0;j<2;j++){
+//#pragma HLS unroll
 		for(i=0;i<2;i++){
+//#pragma HLS unroll
 		  left_derr[j][i] = 0;
 		}
 	  }
@@ -2032,7 +2443,7 @@ void hls_action(snap_membus_t *din_gmem,
 
 int main(void)
 {
-#define MEMORY_LINES 1
+#define MEMORY_LINES 2048
     int rc = 0;
     unsigned int i;
     static snap_membus_t  din_gmem[MEMORY_LINES];
@@ -2058,19 +2469,21 @@ int main(void)
 
     // Processing Phase .....
     // Fill the memory with 'c' characters
-    memset(din_gmem,  'c', sizeof(din_gmem[0]));
+    for(i=0;i<2048*64;i++){
+    	((uint8_t*)din_gmem)[i]=(uint8_t)i;
+    }
     printf("Input is : %s\n", (char *)((unsigned long)din_gmem + 0));
 
     // set flags != 0 to have action processed
     act_reg.Control.flags = 0x1; /* just not 0x0 */
 
-    act_reg.Data.in.addr = 0;
-    act_reg.Data.in.size = 64;
-    act_reg.Data.in.type = SNAP_ADDRTYPE_HOST_DRAM;
 
-    act_reg.Data.out.addr = 0;
-    act_reg.Data.out.size = 64;
-    act_reg.Data.out.type = SNAP_ADDRTYPE_HOST_DRAM;
+	act_reg.Data.in = (unsigned long)0;
+	act_reg.Data.out = (unsigned long)0;
+	act_reg.Data.dqm= (unsigned long)0;
+	act_reg.Data.mb_w= 2;
+	act_reg.Data.mb_h= 2;
+
 
     printf("Action call \n");
     hls_action(din_gmem, dout_gmem, &act_reg, &Action_Config);
