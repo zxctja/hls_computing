@@ -1763,7 +1763,7 @@ void SegmentInfoLoad(VP8SegmentInfo* dqm, snap_membus_t dqm_tmp[12]){
 }
 
 void DATALoad(DATA_O* data_o, snap_membus_t data_tmp[14]){
-
+#pragma HLS inline off
 	data_tmp[0] = ((snap_membus_t)(ap_uint<64>)(data_o->info.D));
 	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.SD)) << 64;
 	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.H)) << 128;
@@ -1780,6 +1780,7 @@ void DATALoad(DATA_O* data_o, snap_membus_t data_tmp[14]){
 	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[8 ])) << 448;
 	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[9 ])) << 464;
 	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[10])) << 480;
+	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[11])) << 496;
 	
 	data_tmp[1] = ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[12])) << 0  ;
 	data_tmp[1] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[13])) << 16 ;
@@ -2282,6 +2283,8 @@ static int process_action(snap_membus_t *din_gmem,
 #pragma HLS ARRAY_PARTITION variable=data_o.info.y_ac_levels complete dim=0
 #pragma HLS ARRAY_PARTITION variable=data_o.info.y_dc_levels complete dim=1
 #pragma HLS ARRAY_PARTITION variable=data_o.info.uv_levels complete dim=0
+#pragma HLS ARRAY_PARTITION variable=data_o.info.modes_i4 complete dim=1
+#pragma HLS ARRAY_PARTITION variable=data_o.info.derr complete dim=0
 //#pragma HLS ARRAY_PARTITION variable=left_y complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=left_u complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=left_v complete dim=1

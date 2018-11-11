@@ -16455,9 +16455,9 @@ static int VP8EncTokenLoop(VP8Encoder* const enc) {
 	      }
 		
 		  if((x + 1) == enc->mb_w_){
-			it.preds_ = enc->preds_ + y * 4 * enc->preds_w_;
+			it.preds_ = enc->preds_ + (y + 1) * 4 * enc->preds_w_;
 			it.nz_ = enc->nz_;
-			it.mb_ = enc->mb_info_ + y * enc->mb_w_;
+			it.mb_ = enc->mb_info_ + (y + 1) * enc->mb_w_;
 			it.left_nz_[8] = 0;
 		  }
 		  else{
