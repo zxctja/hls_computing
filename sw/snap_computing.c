@@ -16271,7 +16271,7 @@ static void snap_prepare_computing(struct snap_job *cjob,
 	snap_job_set(cjob, mjob, sizeof(*mjob), NULL, 0);
 }
 
-static int VP8EncTokenLoop(VP8Encoder* const enc) {
+static int VP8EncTokenLoop(VP8Encoder* const enc, int card_no) {
   // Roughly refresh the proba eight times per pass
   int max_count = (enc->mb_w_ * enc->mb_h_) >> 3;
   int num_pass_left = enc->config_->pass;
@@ -16355,7 +16355,6 @@ static int VP8EncTokenLoop(VP8Encoder* const enc) {
 	if (mem_out == NULL)
 		goto out_error5;
 	
-	int card_no = 0;
 	char device[128];
 	struct snap_card *card = NULL;
 	struct snap_action *action = NULL;
@@ -17175,7 +17174,7 @@ static int DeleteVP8Encoder(VP8Encoder* enc) {
   return ok;
 }
 
-static int WebPEncode(const WebPConfig* config, WebPPicture* pic) {
+static int WebPEncode(const WebPConfig* config, WebPPicture* pic, int card_no) {
   int ok = 0;
   if (pic == NULL) return 0;
 
@@ -17214,7 +17213,7 @@ static int WebPEncode(const WebPConfig* config, WebPPicture* pic) {
     if (!enc->use_tokens_) {
       ok = ok && VP8EncLoop(enc);
     } else {
-      ok = ok && VP8EncTokenLoop(enc);
+      ok = ok && VP8EncTokenLoop(enc, card_no);
     }
     ok = ok && VP8EncFinishAlpha(enc);
 
@@ -17238,6 +17237,7 @@ int main(int argc, const char *argv[]) {
   int c;
   int short_output = 0;
   int keep_alpha = 1;
+  int card_no = 0;
   //int show_progress = 0;
   WebPPicture picture;
   WebPConfig config;
@@ -17267,6 +17267,8 @@ int main(int argc, const char *argv[]) {
       return 0;
     } else if (!strcmp(argv[c], "-o") && c < argc - 1) {
       out_file = argv[++c];
+    } else if (!strcmp(argv[c], "-C") && c < argc - 1) {
+      card_no = ExUtilGetInt(argv[++c], 0, &parse_error);
     } else if (!strcmp(argv[c], "-s") && c < argc - 2) {
       picture.width = ExUtilGetInt(argv[++c], 0, &parse_error);
       picture.height = ExUtilGetInt(argv[++c], 0, &parse_error);
@@ -17356,7 +17358,8 @@ int main(int argc, const char *argv[]) {
   if (verbose) {
     StopwatchReset(&stop_watch);
   }
-  if (!WebPEncode(&config, &picture)) {
+
+  if (!WebPEncode(&config, &picture, card_no)) {
     fprintf(stderr, "Error! Cannot encode picture as WebP\n");
     fprintf(stderr, "Error code: %d (%s)\n",
             picture.error_code, kErrorMessages[picture.error_code]);
