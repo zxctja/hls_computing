@@ -231,7 +231,7 @@ static void Intra16Preds_C(uint8_t YPred[4][16*16], uint8_t left_y[16],
 		uint8_t top_y[20], uint8_t top_left_y, int x, int y) {
 // #pragma HLS ARRAY_PARTITION variable=top_y complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=left_y complete dim=1
-// #pragma HLS ARRAY_PARTITION variable=YPred complete dim=0
+// #pragma HLS ARRAY_PARTITION variable=YPred complete dim=2
   DCMode_16(YPred[0], left_y, top_y, x, y);
   VerticalPred_16(YPred[2], top_y);
   HorizontalPred_16(YPred[3], left_y);
@@ -247,7 +247,7 @@ static void IntraChromaPreds_C(
 // #pragma HLS ARRAY_PARTITION variable=left_u complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=top_v complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=left_v complete dim=1
-// #pragma HLS ARRAY_PARTITION variable=UVPred complete dim=0
+// #pragma HLS ARRAY_PARTITION variable=UVPred complete dim=2
   // U block
   DCMode_8(UVPred[0], left_u, top_u, x, y);
   VerticalPred_8(UVPred[2], top_u);
@@ -1120,7 +1120,7 @@ static void PickBestIntra16(uint8_t Yin[16*16], uint8_t Yout[16*16], uint8_t YPr
 		VP8ModeScore* rd, VP8SegmentInfo* const dqm) {
 // #pragma HLS ARRAY_PARTITION variable=Yout complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
-// #pragma HLS ARRAY_PARTITION variable=YPred complete dim=0
+// #pragma HLS ARRAY_PARTITION variable=YPred complete dim=2
 // #pragma HLS ARRAY_PARTITION variable=rd->y_ac_levels complete dim=0
 // #pragma HLS ARRAY_PARTITION variable=rd->y_dc_levels complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=dqm->y1_.sharpen_ complete dim=1
@@ -1680,7 +1680,7 @@ static void PickBestUV(VP8SegmentInfo* const dqm, uint8_t UVin[8*16], uint8_t UV
 		uint8_t UVout[8*16], VP8ModeScore* const rd, int x, DError top_derr[1024], DError left_derr) {
 // #pragma HLS ARRAY_PARTITION variable=UVout complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=UVin complete dim=1
-// #pragma HLS ARRAY_PARTITION variable=UVPred complete dim=0
+// #pragma HLS ARRAY_PARTITION variable=UVPred complete dim=2
 // #pragma HLS ARRAY_PARTITION variable=rd->uv_levels complete dim=0
 // #pragma HLS ARRAY_PARTITION variable=dqm->uv_.sharpen_ complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=dqm->uv_.zthresh_ complete dim=1
@@ -1765,11 +1765,11 @@ void VP8Decimate_snap(uint8_t Yin[16*16], uint8_t Yout16[16*16], uint8_t Yout4[1
 #pragma HLS ARRAY_PARTITION variable=rd_i4.modes_i4 complete dim=1
 #pragma HLS ARRAY_PARTITION variable=rd_uv.uv_levels complete dim=0
 #pragma HLS ARRAY_PARTITION variable=rd_uv.derr complete dim=0
-#pragma HLS ARRAY_PARTITION variable=YPred complete dim=0
+#pragma HLS ARRAY_PARTITION variable=YPred complete dim=2
 #pragma HLS ARRAY_PARTITION variable=Yout16 complete dim=1
 #pragma HLS ARRAY_PARTITION variable=Yout4 complete dim=1
 #pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
-#pragma HLS ARRAY_PARTITION variable=UVPred complete dim=0
+#pragma HLS ARRAY_PARTITION variable=UVPred complete dim=2
 #pragma HLS ARRAY_PARTITION variable=UVout complete dim=1
 #pragma HLS ARRAY_PARTITION variable=UVin complete dim=1
 #pragma HLS ARRAY_PARTITION variable=rd->uv_levels complete dim=0
