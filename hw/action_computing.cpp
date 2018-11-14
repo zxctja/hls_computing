@@ -30,37 +30,36 @@
 #include <stdint.h>
 #include <math.h>
 
-static void Fill(uint8_t* dst, int value, int size) {
+static void Fill_16(uint8_t* dst, int value) {
   int i,j;
-  for (j = 0; j < size; ++j) {
+  for (j = 0; j < 16; ++j) {
 #pragma HLS unroll
-    for(i = 0; i < size; ++i){
+    for(i = 0; i < 16; ++i){
 #pragma HLS unroll
-        dst[j * size + i] = value;
+        dst[j * 16 + i] = value;
     }
   }
 }
 
-static void DCMode(uint8_t* dst, uint8_t* left, uint8_t* top,
-                               int size, int round, int shift, int x, int y) {
+static void DCMode_16(uint8_t* dst, uint8_t* left, uint8_t* top, int x, int y) {
   int DC = 0;
   int j;
 
   if (x != 0) {
     if (y != 0) {
-  	  for (j = 0; j < size; ++j){
+  	  for (j = 0; j < 16; ++j){
 #pragma HLS unroll
 	    DC += top[j] + left[j];
 	  }
     } else {
-      for (j = 0; j < size; ++j){
+      for (j = 0; j < 16; ++j){
 #pragma HLS unroll
 		DC += left[j] << 1;
 	  }
     }
   } else {
     if (y != 0) {
-      for (j = 0; j < size; ++j){
+      for (j = 0; j < 16; ++j){
 #pragma HLS unroll
 		DC += top[j] << 1;
 	  }
@@ -69,47 +68,47 @@ static void DCMode(uint8_t* dst, uint8_t* left, uint8_t* top,
     }
   }
 
-  DC = (DC + round) >> shift;
-  Fill(dst, DC, size);
+  DC = (DC + 16) >> 5;
+  Fill_16(dst, DC);
 }
 
-static void VerticalPred(uint8_t* dst, uint8_t* top, int size) {
+static void VerticalPred_16(uint8_t* dst, uint8_t* top) {
   int i,j;
-    for (j = 0; j < size; ++j) {
+    for (j = 0; j < 16; ++j) {
 #pragma HLS unroll
-    	for(i = 0; i < size; ++i){
+    	for(i = 0; i < 16; ++i){
 #pragma HLS unroll
-    		dst[j * size + i] = top[i];
+    		dst[j * 16 + i] = top[i];
     	}
     }
 }
 
-static void HorizontalPred(uint8_t* dst, uint8_t* left, int size) {
+static void HorizontalPred_16(uint8_t* dst, uint8_t* left) {
     int i,j;
-    for (j = 0; j < size; ++j) {
+    for (j = 0; j < 16; ++j) {
 #pragma HLS unroll
-    	for(i = 0; i < size; ++i){
+    	for(i = 0; i < 16; ++i){
 #pragma HLS unroll
-    		dst[j * size + i] = left[j];
+    		dst[j * 16 + i] = left[j];
     	}
     }
 }
 
-static void TrueMotion(uint8_t* dst, uint8_t* left, uint8_t* top, uint8_t top_left, int size, int x, int y) {
+static void TrueMotion_16(uint8_t* dst, uint8_t* left, uint8_t* top, uint8_t top_left, int x, int y) {
   int i,j;
   int tmp;
   if (x != 0) {
     if (y != 0) {
-      for (j = 0; j < size; ++j) {
+      for (j = 0; j < 16; ++j) {
 #pragma HLS unroll
-        for (i = 0; i < size; ++i) {
+        for (i = 0; i < 16; ++i) {
 #pragma HLS unroll
         	tmp = top[i] + left[j] - top_left;
-        	dst[j * size + i] = (tmp>0xff) ? 0xff : (tmp<0) ? 0 : (uint8_t)tmp;
+        	dst[j * 16 + i] = (tmp>0xff) ? 0xff : (tmp<0) ? 0 : (uint8_t)tmp;
         }
       }
     } else {
-      HorizontalPred(dst, left, size);
+      HorizontalPred_16(dst, left);
     }
   } else {
     // true motion without left samples (hence: with default 129 value)
@@ -117,23 +116,126 @@ static void TrueMotion(uint8_t* dst, uint8_t* left, uint8_t* top, uint8_t top_le
     // Note that if top samples are not available, the default value is
     // then 129, and not 127 as in the VerticalPred case.
     if (y != 0) {
-      VerticalPred(dst, top, size);
+      VerticalPred_16(dst, top);
     } else {
-      Fill(dst, 129, size);
+      Fill_16(dst, 129);
+    }
+  }
+}
+
+static void Fill_8(uint8_t* dst, int value) {
+  int i,j;
+  for (j = 0; j < 8; ++j) {
+#pragma HLS unroll
+    for(i = 0; i < 8; ++i){
+#pragma HLS unroll
+        dst[j * 8 + i] = value;
+    }
+  }
+}
+
+static void Fill_4(uint8_t* dst, int value) {
+  int i,j;
+  for (j = 0; j < 4; ++j) {
+#pragma HLS unroll
+    for(i = 0; i < 4; ++i){
+#pragma HLS unroll
+        dst[j * 4 + i] = value;
+    }
+  }
+}
+
+static void DCMode_8(uint8_t* dst, uint8_t* left, uint8_t* top, int x, int y) {
+  int DC = 0;
+  int j;
+
+  if (x != 0) {
+    if (y != 0) {
+  	  for (j = 0; j < 8; ++j){
+#pragma HLS unroll
+	    DC += top[j] + left[j];
+	  }
+    } else {
+      for (j = 0; j < 8; ++j){
+#pragma HLS unroll
+		DC += left[j] << 1;
+	  }
+    }
+  } else {
+    if (y != 0) {
+      for (j = 0; j < 8; ++j){
+#pragma HLS unroll
+		DC += top[j] << 1;
+	  }
+    } else {
+    	DC = 0x80 << 4;
+    }
+  }
+
+  DC = (DC + 8) >> 4;
+  Fill_8(dst, DC);
+}
+
+static void VerticalPred_8(uint8_t* dst, uint8_t* top) {
+  int i,j;
+    for (j = 0; j < 8; ++j) {
+#pragma HLS unroll
+    	for(i = 0; i < 8; ++i){
+#pragma HLS unroll
+    		dst[j * 8 + i] = top[i];
+    	}
+    }
+}
+
+static void HorizontalPred_8(uint8_t* dst, uint8_t* left) {
+    int i,j;
+    for (j = 0; j < 8; ++j) {
+#pragma HLS unroll
+    	for(i = 0; i < 8; ++i){
+#pragma HLS unroll
+    		dst[j * 8 + i] = left[j];
+    	}
+    }
+}
+
+static void TrueMotion_8(uint8_t* dst, uint8_t* left, uint8_t* top, uint8_t top_left, int x, int y) {
+  int i,j;
+  int tmp;
+  if (x != 0) {
+    if (y != 0) {
+      for (j = 0; j < 8; ++j) {
+#pragma HLS unroll
+        for (i = 0; i < 8; ++i) {
+#pragma HLS unroll
+        	tmp = top[i] + left[j] - top_left;
+        	dst[j * 8 + i] = (tmp>0xff) ? 0xff : (tmp<0) ? 0 : (uint8_t)tmp;
+        }
+      }
+    } else {
+      HorizontalPred_8(dst, left);
+    }
+  } else {
+    // true motion without left samples (hence: with default 129 value)
+    // is equivalent to VE prediction where you just copy the top samples.
+    // Note that if top samples are not available, the default value is
+    // then 129, and not 127 as in the VerticalPred case.
+    if (y != 0) {
+      VerticalPred_8(dst, top);
+    } else {
+      Fill_8(dst, 129);
     }
   }
 }
 
 static void Intra16Preds_C(uint8_t YPred[4][16*16], uint8_t left_y[16],
 		uint8_t top_y[20], uint8_t top_left_y, int x, int y) {
-//#pragma HLS PIPELINE
 #pragma HLS ARRAY_PARTITION variable=top_y complete dim=1
 #pragma HLS ARRAY_PARTITION variable=left_y complete dim=1
 #pragma HLS ARRAY_PARTITION variable=YPred complete dim=0
-  DCMode(YPred[0], left_y, top_y, 16, 16, 5, x, y);
-  VerticalPred(YPred[2], top_y, 16);
-  HorizontalPred(YPred[3], left_y, 16);
-  TrueMotion(YPred[1], left_y, top_y, top_left_y, 16, x, y);
+  DCMode_16(YPred[0], left_y, top_y, x, y);
+  VerticalPred_16(YPred[2], top_y);
+  HorizontalPred_16(YPred[3], left_y);
+  TrueMotion_16(YPred[1], left_y, top_y, top_left_y, x, y);
 }
 
 static void IntraChromaPreds_C(
@@ -141,22 +243,21 @@ static void IntraChromaPreds_C(
         uint8_t left_u[8], uint8_t top_u[8], uint8_t top_left_u,
 		uint8_t left_v[8], uint8_t top_v[8], uint8_t top_left_v,
 		int x, int y) {
-//#pragma HLS PIPELINE
 #pragma HLS ARRAY_PARTITION variable=top_u complete dim=1
 #pragma HLS ARRAY_PARTITION variable=left_u complete dim=1
 #pragma HLS ARRAY_PARTITION variable=top_v complete dim=1
 #pragma HLS ARRAY_PARTITION variable=left_v complete dim=1
 #pragma HLS ARRAY_PARTITION variable=UVPred complete dim=0
   // U block
-  DCMode(UVPred[0], left_u, top_u, 8, 8, 4, x, y);
-  VerticalPred(UVPred[2], top_u, 8);
-  HorizontalPred(UVPred[3], left_u, 8);
-  TrueMotion(UVPred[1], left_u, top_u, top_left_u, 8, x, y);
+  DCMode_8(UVPred[0], left_u, top_u, x, y);
+  VerticalPred_8(UVPred[2], top_u);
+  HorizontalPred_8(UVPred[3], left_u);
+  TrueMotion_8(UVPred[1], left_u, top_u, top_left_u, x, y);
   // V block
-  DCMode(UVPred[4], left_v, top_v, 8, 8, 4, x, y);
-  VerticalPred(UVPred[6], top_v, 8);
-  HorizontalPred(UVPred[7], left_v, 8);
-  TrueMotion(UVPred[5], left_v, top_v, top_left_v, 8, x, y);
+  DCMode_8(UVPred[4], left_v, top_v, x, y);
+  VerticalPred_8(UVPred[6], top_v);
+  HorizontalPred_8(UVPred[7], left_v);
+  TrueMotion_8(UVPred[5], left_v, top_v, top_left_v, x, y);
 }
 
 // luma 4x4 prediction
@@ -202,7 +303,7 @@ static void DC4(uint8_t* dst, uint8_t* top, uint8_t* left) {
 	  dc += top[i] + left[i];
   }
   dc = dc >> 3;
-  Fill(dst, dc, 4);
+  Fill_4(dst, dc);
 }
 
 static void RD4(uint8_t* dst, uint8_t* left, uint8_t top_left, uint8_t* top) {
@@ -811,15 +912,14 @@ static const uint16_t kWeightY[16] = {
 #define FLATNESS_LIMIT_I16 10      // I16 mode
 #define FLATNESS_PENALTY   140     // roughly ~1bit per block
 
-static int GetSSE(const uint8_t* a, const uint8_t* b,
-                              int w, int h) {
+static int GetSSE16x16(const uint8_t* a, const uint8_t* b) {
   int count = 0;
   int y, x;
-  for (y = 0; y < h; ++y) {
+  for (y = 0; y < 16; ++y) {
 #pragma HLS unroll
-    for (x = 0; x < w; ++x) {
+    for (x = 0; x < 16; ++x) {
 #pragma HLS unroll
-      const int diff = (int)a[x + y * w] - b[x + y * w];
+      const int diff = (int)a[x + y * 16] - b[x + y * 16];
       count += diff * diff;
     }
   }
@@ -827,8 +927,7 @@ static int GetSSE(const uint8_t* a, const uint8_t* b,
 }
 
 static int SSE16x16_C(const uint8_t* a, const uint8_t* b) {
-//#pragma HLS INLINE off
-  return GetSSE(a, b, 16, 16);
+  return GetSSE16x16(a, b);
 }
 
 #define MULT_8B(a, b) (((a) * (b) + 128) >> 8)
@@ -1103,8 +1202,22 @@ static void InitScore(VP8ModeScore* const rd) {
 const uint16_t VP8FixedCostsI4[NUM_BMODES] =
    {   40, 1151, 1723, 1874, 2103, 2019, 1628, 1777, 2226, 2137 };
 
+static int GetSSE4x4(const uint8_t* a, const uint8_t* b) {
+  int count = 0;
+  int y, x;
+  for (y = 0; y < 4; ++y) {
+#pragma HLS unroll
+    for (x = 0; x < 4; ++x) {
+#pragma HLS unroll
+      const int diff = (int)a[x + y * 4] - b[x + y * 4];
+      count += diff * diff;
+    }
+  }
+  return count;
+}
+
 static int SSE4x4_C(const uint8_t* a, const uint8_t* b) {
-  return GetSSE(a, b, 4, 4);
+  return GetSSE4x4(a, b);
 }
 
 static void AddScore(VP8ModeScore* const dst, const VP8ModeScore* const src) {
@@ -1288,7 +1401,85 @@ static int VP8GetCostLuma4(int16_t tmp_levels[16]){
 	return test_R << 10;
 }
 
-int PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t Yout[16*16],
+static int PickBestMode(VP8ModeScore rd_tmp[10]){
+
+    int best_mode_0;
+    int best_mode_1;
+    int best_mode_2;
+    int best_mode_3;
+    int best_mode_4;
+    int best_mode_5;
+    int best_mode_6;
+    int best_mode_7;
+    int best_mode_8;
+
+	if(rd_tmp[1].score < rd_tmp[0].score){
+		best_mode_0 = 1;
+	}
+	else{
+		best_mode_0 = 0;
+	}
+
+	if(rd_tmp[3].score < rd_tmp[2].score){
+		best_mode_1 = 3;
+	}
+	else{
+		best_mode_1 = 2;
+	}
+
+	if(rd_tmp[5].score < rd_tmp[4].score){
+		best_mode_2 = 5;
+	}
+	else{
+		best_mode_2 = 4;
+	}
+
+	if(rd_tmp[7].score < rd_tmp[6].score){
+		best_mode_3 = 7;
+	}
+	else{
+		best_mode_3 = 6;
+	}
+
+	if(rd_tmp[9].score < rd_tmp[8].score){
+		best_mode_4 = 9;
+	}
+	else{
+		best_mode_4 = 8;
+	}
+
+	if(rd_tmp[best_mode_1].score < rd_tmp[best_mode_0].score){
+		best_mode_5 = best_mode_1;
+	}
+	else{
+		best_mode_5 = best_mode_0;
+	}
+
+	if(rd_tmp[best_mode_3].score < rd_tmp[best_mode_2].score){
+		best_mode_6 = best_mode_3;
+	}
+	else{
+		best_mode_6 = best_mode_2;
+	}
+
+	if(rd_tmp[best_mode_6].score < rd_tmp[best_mode_5].score){
+		best_mode_7 = best_mode_6;
+	}
+	else{
+		best_mode_7 = best_mode_5;
+	}
+
+	if(rd_tmp[best_mode_4].score < rd_tmp[best_mode_7].score){
+		best_mode_8 = best_mode_4;
+	}
+	else{
+		best_mode_8 = best_mode_7;
+	}
+
+	return best_mode_8;
+}
+
+static int PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t Yout[16*16],
 		VP8ModeScore* const rd, uint8_t y_left[16], uint8_t y_top_left, uint8_t y_top[20]) {
 #pragma HLS ARRAY_PARTITION variable=Yout complete dim=1
 #pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
@@ -1355,16 +1546,7 @@ int PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t Yout[1
   for (i4_ = 0; i4_ < 16; ++i4_){
     VP8ModeScore rd_i4;
     int mode;
-    int best_mode_0;
-    int best_mode_1;
-    int best_mode_2;
-    int best_mode_3;
-    int best_mode_4;
-    int best_mode_5;
-    int best_mode_6;
-    int best_mode_7;
-    int best_mode_8;
-    const uint16_t* const mode_costs = VP8FixedCostsI4;
+    int best_mode;
     uint8_t tmp_pred[10][16];    // scratch buffer.
     VP8ModeScore rd_tmp[10];
     int16_t tmp_levels[10][16];
@@ -1374,6 +1556,7 @@ int PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t Yout[1
 #pragma HLS ARRAY_PARTITION variable=tmp_levels complete dim=0
 #pragma HLS ARRAY_PARTITION variable=rd_tmp complete dim=1
 #pragma HLS ARRAY_PARTITION variable=VP8FixedCostsI4 complete dim=1
+#pragma HLS ARRAY_PARTITION variable=kWeightY complete dim=1
 #pragma HLS ARRAY_PARTITION variable=tmp_pred complete dim=0
 
     Intra4Preds_C(tmp_pred, left, top_left, top, top_right);
@@ -1387,83 +1570,21 @@ int PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t Yout[1
       // Compute RD-score
       rd_tmp[mode].D = SSE4x4_C(src[i4_], tmp_dst[mode]);
       rd_tmp[mode].SD = MULT_8B(tlambda, Disto4x4_C(src[i4_], tmp_dst[mode], kWeightY));
-      rd_tmp[mode].H = mode_costs[mode];
+      rd_tmp[mode].H = VP8FixedCostsI4[mode];
 	  rd_tmp[mode].R = VP8GetCostLuma4(tmp_levels[mode]);
 
       SetRDScore(lambda, &rd_tmp[mode]);
-
     }
 
-	if(rd_tmp[1].score < rd_tmp[0].score){
-		best_mode_0 = 1;
-	}
-	else{
-		best_mode_0 = 0;
-	}
+    best_mode = PickBestMode(rd_tmp);
 
-	if(rd_tmp[3].score < rd_tmp[2].score){
-		best_mode_1 = 3;
-	}
-	else{
-		best_mode_1 = 2;
-	}
-
-	if(rd_tmp[5].score < rd_tmp[4].score){
-		best_mode_2 = 5;
-	}
-	else{
-		best_mode_2 = 4;
-	}
-
-	if(rd_tmp[7].score < rd_tmp[6].score){
-		best_mode_3 = 7;
-	}
-	else{
-		best_mode_3 = 6;
-	}
-
-	if(rd_tmp[9].score < rd_tmp[8].score){
-		best_mode_4 = 9;
-	}
-	else{
-		best_mode_4 = 8;
-	}
-
-	if(rd_tmp[best_mode_1].score < rd_tmp[best_mode_0].score){
-		best_mode_5 = best_mode_1;
-	}
-	else{
-		best_mode_5 = best_mode_0;
-	}
-
-	if(rd_tmp[best_mode_3].score < rd_tmp[best_mode_2].score){
-		best_mode_6 = best_mode_3;
-	}
-	else{
-		best_mode_6 = best_mode_2;
-	}
-
-	if(rd_tmp[best_mode_6].score < rd_tmp[best_mode_5].score){
-		best_mode_7 = best_mode_6;
-	}
-	else{
-		best_mode_7 = best_mode_5;
-	}
-
-	if(rd_tmp[best_mode_4].score < rd_tmp[best_mode_7].score){
-		best_mode_8 = best_mode_4;
-	}
-	else{
-		best_mode_8 = best_mode_7;
-	}
-
-    CopyScore(&rd_i4, &rd_tmp[best_mode_8]);
-	copy_16_int16(rd->y_ac_levels[i4_], tmp_levels[best_mode_8]);
-	copy_16_uint8(best_blocks[i4_], tmp_dst[best_mode_8]);
+    CopyScore(&rd_i4, &rd_tmp[best_mode]);
+	copy_16_int16(rd->y_ac_levels[i4_], tmp_levels[best_mode]);
+	copy_16_uint8(best_blocks[i4_], tmp_dst[best_mode]);
 
     SetRDScore(dqm->lambda_mode_, &rd_i4);
     AddScore(rd, &rd_i4);
-    rd->modes_i4[i4_] = best_mode_8;
+    rd->modes_i4[i4_] = best_mode;
     VP8IteratorRotateI4(y_left, y_top_left, y_top, i4_, top_mem,
     		best_blocks, left, &top_left, top, top_right);
   }
@@ -1482,8 +1603,22 @@ int PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t Yout[1
   return 1;   // select intra4x4 over intra16x16
 }
 
+static int GetSSE16x8(const uint8_t* a, const uint8_t* b) {
+  int count = 0;
+  int y, x;
+  for (y = 0; y < 8; ++y) {
+#pragma HLS unroll
+    for (x = 0; x < 16; ++x) {
+#pragma HLS unroll
+      const int diff = (int)a[x + y * 16] - b[x + y * 16];
+      count += diff * diff;
+    }
+  }
+  return count;
+}
+
 static int SSE16x8_C(const uint8_t* a, const uint8_t* b) {
-  return GetSSE(a, b, 16, 8);
+  return GetSSE16x8(a, b);
 }
 
 const uint16_t VP8FixedCostsUV[4] = { 302, 984, 439, 642 };
@@ -1635,21 +1770,22 @@ void VP8Decimate_snap(uint8_t Yin[16*16], uint8_t Yout16[16*16], uint8_t Yout4[1
 #pragma HLS ARRAY_PARTITION variable=rd_i4.modes_i4 complete dim=1
 #pragma HLS ARRAY_PARTITION variable=rd_uv.uv_levels complete dim=0
 #pragma HLS ARRAY_PARTITION variable=rd_uv.derr complete dim=0
-#pragma HLS ARRAY_PARTITION variable=UVPred complete dim=0
 #pragma HLS ARRAY_PARTITION variable=YPred complete dim=0
+#pragma HLS ARRAY_PARTITION variable=Yout16 complete dim=1
+#pragma HLS ARRAY_PARTITION variable=Yout4 complete dim=1
+#pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
+#pragma HLS ARRAY_PARTITION variable=UVPred complete dim=0
 #pragma HLS ARRAY_PARTITION variable=UVout complete dim=1
 #pragma HLS ARRAY_PARTITION variable=UVin complete dim=1
 #pragma HLS ARRAY_PARTITION variable=rd->uv_levels complete dim=0
+#pragma HLS ARRAY_PARTITION variable=rd->y_ac_levels complete dim=0
+#pragma HLS ARRAY_PARTITION variable=rd->y_dc_levels complete dim=1
+#pragma HLS ARRAY_PARTITION variable=rd->modes_i4 complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm->uv_.sharpen_ complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm->uv_.zthresh_ complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm->uv_.bias_ complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm->uv_.iq_ complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm->uv_.q_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=Yout16 complete dim=1
-#pragma HLS ARRAY_PARTITION variable=Yout4 complete dim=1
-#pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
-#pragma HLS ARRAY_PARTITION variable=rd->y_ac_levels complete dim=0
-#pragma HLS ARRAY_PARTITION variable=rd->y_dc_levels complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm->y1_.sharpen_ complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm->y1_.zthresh_ complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm->y1_.bias_ complete dim=1
@@ -1666,6 +1802,9 @@ void VP8Decimate_snap(uint8_t Yin[16*16], uint8_t Yout16[16*16], uint8_t Yout4[1
 #pragma HLS ARRAY_PARTITION variable=top_u complete dim=1
 #pragma HLS ARRAY_PARTITION variable=left_v complete dim=1
 #pragma HLS ARRAY_PARTITION variable=top_v complete dim=1
+#pragma HLS ARRAY_PARTITION variable=top_derr complete dim=2
+#pragma HLS ARRAY_PARTITION variable=top_derr complete dim=3
+#pragma HLS ARRAY_PARTITION variable=left_derr complete dim=0
 
   InitScore(&rd_i16);
   InitScore(&rd_i4);
