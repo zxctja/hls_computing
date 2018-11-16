@@ -467,12 +467,12 @@ static void Intra4Preds_C(
 static void FTransform_C(const uint8_t* src, const uint8_t* ref, int16_t* out) {
   int i;
   int tmp[16];
-  for (i = 0; i < 4; ++i, src += 4, ref += 4) {
+  for (i = 0; i < 4; ++i) {
 #pragma HLS unroll
-    const int d0 = src[0] - ref[0];   // 9bit dynamic range ([-255,255])
-    const int d1 = src[1] - ref[1];
-    const int d2 = src[2] - ref[2];
-    const int d3 = src[3] - ref[3];
+    const int d0 = src[4 * i + 0] - ref[4 * i + 0];   // 9bit dynamic range ([-255,255])
+    const int d1 = src[4 * i + 1] - ref[4 * i + 1];
+    const int d2 = src[4 * i + 2] - ref[4 * i + 2];
+    const int d3 = src[4 * i + 3] - ref[4 * i + 3];
     const int a0 = (d0 + d3);         // 10b                      [-510,510]
     const int a1 = (d1 + d2);
     const int a2 = (d1 - d2);
@@ -499,12 +499,12 @@ static void FTransformWHT_C(const int16_t* in, int16_t* out) {
   // input is 12b signed
   int32_t tmp[16];
   int i;
-  for (i = 0; i < 4; ++i, in += 4) {
+  for (i = 0; i < 4; ++i) {
 #pragma HLS unroll
-    const int a0 = (in[0] + in[2]);  // 13b
-    const int a1 = (in[1] + in[3]);
-    const int a2 = (in[1] - in[3]);
-    const int a3 = (in[0] - in[2]);
+    const int a0 = (in[4 * i + 0] + in[4 * i + 2]);  // 13b
+    const int a1 = (in[4 * i + 1] + in[4 * i + 3]);
+    const int a2 = (in[4 * i + 1] - in[4 * i + 3]);
+    const int a3 = (in[4 * i + 0] - in[4 * i + 2]);
     tmp[0 + i * 4] = a0 + a1;   // 14b
     tmp[1 + i * 4] = a3 + a2;
     tmp[2 + i * 4] = a3 - a2;
@@ -569,8 +569,6 @@ static int QuantizeBlock_C(int16_t* in, int16_t* out,
   return (last >= 0);
 }
 
-
-
 static void TransformWHT_C(const int16_t* in, int16_t* out) {
   int tmp[16];
   int i;
@@ -592,18 +590,17 @@ static void TransformWHT_C(const int16_t* in, int16_t* out) {
     const int a1 = tmp[1 + i * 4] + tmp[2 + i * 4];
     const int a2 = tmp[1 + i * 4] - tmp[2 + i * 4];
     const int a3 = dc             - tmp[3 + i * 4];
-    out[0] = (a0 + a1) >> 3;
-    out[1] = (a3 + a2) >> 3;
-    out[2] = (a0 - a1) >> 3;
-    out[3] = (a3 - a2) >> 3;
-    out += 4;
+    out[4 * i + 0] = (a0 + a1) >> 3;
+    out[4 * i + 1] = (a3 + a2) >> 3;
+    out[4 * i + 2] = (a0 - a1) >> 3;
+    out[4 * i + 3] = (a3 - a2) >> 3;
   }
 }
 
 typedef int16_t fixed_t;
 
 uint8_t clip_8b(fixed_t v) {
-  return (!(v & ~0xff)) ? v : (v < 0) ? 0 : 255;
+  return (v>0xff) ? 0xff : (v<0) ? 0 : (uint8_t)v;
 }
 
 #define STORE(x, y, v) \
@@ -615,39 +612,33 @@ static const int kC2 = 35468;
 
 static void ITransformOne(const uint8_t* ref, const int16_t* in,
                                       uint8_t* dst) {
-  int C[4 * 4], *tmp;
+  int tmp[4 * 4];
   int i;
-  tmp = C;
   for (i = 0; i < 4; ++i) {    // vertical pass
 #pragma HLS unroll
-    const int a = in[0] + in[8];
-    const int b = in[0] - in[8];
-    const int c = MUL(in[4], kC2) - MUL(in[12], kC1);
-    const int d = MUL(in[4], kC1) + MUL(in[12], kC2);
-    tmp[0] = a + d;
-    tmp[1] = b + c;
-    tmp[2] = b - c;
-    tmp[3] = a - d;
-    tmp += 4;
-    in++;
+    const int a = in[i + 0] + in[i + 8];
+    const int b = in[i + 0] - in[i + 8];
+    const int c = MUL(in[i + 4], kC2) - MUL(in[i + 12], kC1);
+    const int d = MUL(in[i + 4], kC1) + MUL(in[i + 12], kC2);
+    tmp[4 * i + 0] = a + d;
+    tmp[4 * i + 1] = b + c;
+    tmp[4 * i + 2] = b - c;
+    tmp[4 * i + 3] = a - d;
   }
 
-  tmp = C;
   for (i = 0; i < 4; ++i) {    // horizontal pass
 #pragma HLS unroll
-    const int dc = tmp[0] + 4;
-    const int a =  dc +  tmp[8];
-    const int b =  dc -  tmp[8];
-    const int c = MUL(tmp[4], kC2) - MUL(tmp[12], kC1);
-    const int d = MUL(tmp[4], kC1) + MUL(tmp[12], kC2);
+    const int dc = tmp[i + 0] + 4;
+    const int a =  dc +  tmp[i + 8];
+    const int b =  dc -  tmp[i + 8];
+    const int c = MUL(tmp[i + 4], kC2) - MUL(tmp[i + 12], kC1);
+    const int d = MUL(tmp[i + 4], kC1) + MUL(tmp[i + 12], kC2);
     STORE(0, i, a + d);
     STORE(1, i, b + c);
     STORE(2, i, b - c);
     STORE(3, i, a - d);
-    tmp++;
   }
 }
-
 
 static int ReconstructIntra16(
 		const uint8_t YPred[16*16], const uint8_t Ysrc[16*16], uint8_t Yout[16*16],
@@ -1087,7 +1078,7 @@ static int VP8GetCostLuma16(VP8ModeScore* rd_cur){
 	return test_R << 10;
 }
 
-static void copy_16x16_int16(int16_t dst[16][16], int16_t src[16][16]){
+static void Copy_16x16_int16(int16_t dst[16][16], int16_t src[16][16]){
 	int y, x;
 	for (y = 0; y < 16; ++y) {
 #pragma HLS unroll
@@ -1098,7 +1089,7 @@ static void copy_16x16_int16(int16_t dst[16][16], int16_t src[16][16]){
 	}
 }
 
-static void copy_16_int16(int16_t dst[16], int16_t src[16]){
+static void Copy_16_int16(int16_t dst[16], int16_t src[16]){
 	int y;
 	for (y = 0; y < 16; ++y) {
 #pragma HLS unroll
@@ -1107,7 +1098,7 @@ static void copy_16_int16(int16_t dst[16], int16_t src[16]){
 
 }
 
-static void copy_256_uint8(uint8_t dst[16*16], uint8_t src[16*16]){
+static void Copy_256_uint8(uint8_t dst[16*16], uint8_t src[16*16]){
 	int y;
 	for (y = 0; y < 256; ++y) {
 #pragma HLS unroll
@@ -1115,7 +1106,7 @@ static void copy_256_uint8(uint8_t dst[16*16], uint8_t src[16*16]){
 	}
 }
 
-static void copy_16_uint8(uint8_t dst[16], uint8_t src[16]){
+static void Copy_16_uint8(uint8_t dst[16], uint8_t src[16]){
 	int y;
 	for (y = 0; y < 16; ++y) {
 #pragma HLS unroll
@@ -1180,9 +1171,9 @@ static void PickBestIntra16(uint8_t Yin[16*16], uint8_t Yout[16*16],
     if (rd_cur->score < rd_best->score) {
       rd_best->mode_i16	= rd_cur->mode_i16;
       CopyScore(rd_best, rd_cur);
-	  copy_16x16_int16(rd_best->y_ac_levels, rd_cur->y_ac_levels);
-	  copy_16_int16(rd_best->y_dc_levels, rd_cur->y_dc_levels);
-	  copy_256_uint8(Yout, tmp_dst);
+	  Copy_16x16_int16(rd_best->y_ac_levels, rd_cur->y_ac_levels);
+	  Copy_16_int16(rd_best->y_dc_levels, rd_cur->y_dc_levels);
+	  Copy_256_uint8(Yout, tmp_dst);
     }
   }
 
@@ -1587,8 +1578,8 @@ static int PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t
     best_mode = PickBestMode(rd_tmp);
 
     CopyScore(&rd_i4, &rd_tmp[best_mode]);
-	copy_16_int16(rd->y_ac_levels[i4_], tmp_levels[best_mode]);
-	copy_16_uint8(best_blocks[i4_], tmp_dst[best_mode]);
+	Copy_16_int16(rd->y_ac_levels[i4_], tmp_levels[best_mode]);
+	Copy_16_uint8(best_blocks[i4_], tmp_dst[best_mode]);
 
     SetRDScore(dqm->lambda_mode_, &rd_i4);
     AddScore(rd, &rd_i4);
@@ -1826,17 +1817,17 @@ void VP8Decimate_snap(uint8_t Yin[16*16], uint8_t Yout16[16*16], uint8_t Yout4[1
 
   if (rd_i4.score >= rd_i16.score) {
 	*mbtype = 1;
-	copy_16x16_int16(rd->y_ac_levels, rd_i16.y_ac_levels);
+	Copy_16x16_int16(rd->y_ac_levels, rd_i16.y_ac_levels);
   }
   else{
     *mbtype = 0;
-	copy_16x16_int16(rd->y_ac_levels, rd_i4.y_ac_levels);
+	Copy_16x16_int16(rd->y_ac_levels, rd_i4.y_ac_levels);
   }
 
   CopyUVLevel(rd->uv_levels, rd_uv.uv_levels);
   //CopyUVderr(rd->derr, rd_uv.derr);//can be disable ?? 
-  copy_16_uint8(rd->modes_i4, rd_i4.modes_i4);
-  copy_16_int16(rd->y_dc_levels, rd_i16.y_dc_levels);
+  Copy_16_uint8(rd->modes_i4, rd_i4.modes_i4);
+  Copy_16_int16(rd->y_dc_levels, rd_i16.y_dc_levels);
 
   rd->mode_i16 = rd_i16.mode_i16;
   rd->mode_uv = rd_uv.mode_uv;
