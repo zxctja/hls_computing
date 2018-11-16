@@ -1112,22 +1112,22 @@ static void Copy_16_uint8(uint8_t dst[16], uint8_t src[16]){
 void PickBestIntra16(uint8_t Yin[16*16], uint8_t Yout[16*16],
 		VP8ModeScore* rd, VP8SegmentInfo* const dqm, uint8_t left_y[16],
 		uint8_t top_y[20], uint8_t top_left_y, int x, int y) {
-#pragma HLS ARRAY_PARTITION variable=Yout complete dim=1
-#pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
-#pragma HLS ARRAY_PARTITION variable=rd->y_ac_levels complete dim=0
-#pragma HLS ARRAY_PARTITION variable=rd->y_dc_levels complete dim=1
-#pragma HLS ARRAY_PARTITION variable=dqm->y1_.sharpen_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=dqm->y1_.zthresh_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=dqm->y1_.bias_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=dqm->y1_.iq_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=dqm->y1_.q_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=dqm->y2_.sharpen_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=dqm->y2_.zthresh_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=dqm->y2_.bias_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=dqm->y2_.iq_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=dqm->y2_.q_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=top_y complete dim=1
-#pragma HLS ARRAY_PARTITION variable=left_y complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=Yout complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=rd->y_ac_levels complete dim=0
+//#pragma HLS ARRAY_PARTITION variable=rd->y_dc_levels complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.sharpen_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.zthresh_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.bias_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.iq_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.q_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=dqm->y2_.sharpen_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=dqm->y2_.zthresh_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=dqm->y2_.bias_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=dqm->y2_.iq_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=dqm->y2_.q_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=top_y complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=left_y complete dim=1
 
   const int lambda = dqm->lambda_i16_;
   const int tlambda = dqm->tlambda_;
@@ -1391,7 +1391,7 @@ static int VP8GetCostLuma4(int16_t tmp_levels[16]){
 	return test_R << 10;
 }
 
-static int PickBestMode(VP8ModeScore rd_tmp[10]){
+static int PickBestMode_4(VP8ModeScore rd_tmp[10]){
 
     int best_mode_0;
     int best_mode_1;
@@ -1566,7 +1566,7 @@ static int PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t
       SetRDScore(lambda, &rd_tmp[mode]);
     }
 
-    best_mode = PickBestMode(rd_tmp);
+    best_mode = PickBestMode_4(rd_tmp);
 
     CopyScore(&rd_i4, &rd_tmp[best_mode]);
 	Copy_16_int16(rd->y_ac_levels[i4_], tmp_levels[best_mode]);
@@ -1623,14 +1623,14 @@ static void StoreDiffusionErrors(DError top_derr[1024], DError left_derr, int x,
   }
 }
 
-static int64_t VP8GetCostUV(VP8ModeScore* rd_uv){
+static int64_t VP8GetCostUV(int16_t uv_levels[4 + 4][16]){
 	int64_t test_R = 0;
 	int x, y;
 	for (y = 0; y < 8; ++y) {
 #pragma HLS unroll
 	  for (x = 0; x < 16; ++x) {
 #pragma HLS unroll
-	    test_R += rd_uv->uv_levels[y][x] * rd_uv->uv_levels[y][x];
+	    test_R += uv_levels[y][x] * uv_levels[y][x];
 	  }
 	}
 	return test_R << 10;
@@ -1666,26 +1666,26 @@ static void CopyUVout(uint8_t dst[8*16], uint8_t src[8*16]) {
   }
 }
 
-static void PickBestUV(VP8SegmentInfo* const dqm, uint8_t UVin[8*16], uint8_t UVout[8*16],
+void PickBestUV(VP8SegmentInfo* const dqm, uint8_t UVin[8*16], uint8_t UVout[8*16],
 		VP8ModeScore* const rd, DError top_derr[1024], DError left_derr, uint8_t left_u[8],
 		uint8_t top_u[8], uint8_t top_left_u, uint8_t left_v[8], uint8_t top_v[8],
 		uint8_t top_left_v, int x, int y) {
-//#pragma HLS pipeline
-//#pragma HLS ARRAY_PARTITION variable=UVout complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=UVin complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=rd->uv_levels complete dim=0
-//#pragma HLS ARRAY_PARTITION variable=dqm->uv_.sharpen_ complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=dqm->uv_.zthresh_ complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=dqm->uv_.bias_ complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=dqm->uv_.iq_ complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=dqm->uv_.q_ complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=top_derr complete dim=2
-//#pragma HLS ARRAY_PARTITION variable=top_derr complete dim=3
-//#pragma HLS ARRAY_PARTITION variable=left_derr complete dim=0
-//#pragma HLS ARRAY_PARTITION variable=top_u complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=top_v complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=left_u complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=left_v complete dim=1
+#pragma HLS pipeline
+#pragma HLS ARRAY_PARTITION variable=UVout complete dim=1
+#pragma HLS ARRAY_PARTITION variable=UVin complete dim=1
+#pragma HLS ARRAY_PARTITION variable=rd->uv_levels complete dim=0
+#pragma HLS ARRAY_PARTITION variable=dqm->uv_.sharpen_ complete dim=1
+#pragma HLS ARRAY_PARTITION variable=dqm->uv_.zthresh_ complete dim=1
+#pragma HLS ARRAY_PARTITION variable=dqm->uv_.bias_ complete dim=1
+#pragma HLS ARRAY_PARTITION variable=dqm->uv_.iq_ complete dim=1
+#pragma HLS ARRAY_PARTITION variable=dqm->uv_.q_ complete dim=1
+#pragma HLS ARRAY_PARTITION variable=top_derr complete dim=2
+#pragma HLS ARRAY_PARTITION variable=top_derr complete dim=3
+#pragma HLS ARRAY_PARTITION variable=left_derr complete dim=0
+#pragma HLS ARRAY_PARTITION variable=top_u complete dim=1
+#pragma HLS ARRAY_PARTITION variable=top_v complete dim=1
+#pragma HLS ARRAY_PARTITION variable=left_u complete dim=1
+#pragma HLS ARRAY_PARTITION variable=left_v complete dim=1
 
   const int lambda = dqm->lambda_uv_;
   const uint8_t* const src = UVin;
@@ -1722,7 +1722,7 @@ static void PickBestUV(VP8SegmentInfo* const dqm, uint8_t UVin[8*16], uint8_t UV
     rd_uv.D  = GetSSE16x8(src, tmp_dst);
     rd_uv.SD = 0;    // not calling TDisto here: it tends to flatten areas.
     rd_uv.H  = VP8FixedCostsUV[mode];
-	rd_uv.R  = VP8GetCostUV(&rd_uv);
+	rd_uv.R  = VP8GetCostUV(rd_uv.uv_levels);
 
     SetRDScore(lambda, &rd_uv);
 
