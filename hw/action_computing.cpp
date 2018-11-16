@@ -127,7 +127,7 @@ static void Intra16Preds_C(uint8_t YPred[4][16*16], uint8_t left_y[16],
 		uint8_t top_y[20], uint8_t top_left_y, int x, int y) {
 // #pragma HLS ARRAY_PARTITION variable=top_y complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=left_y complete dim=1
-// #pragma HLS ARRAY_PARTITION variable=YPred complete dim=2
+// #pragma HLS ARRAY_PARTITION variable=YPred complete dim=0
   DCMode_16(YPred[0], left_y, top_y, x, y);
   VerticalPred_16(YPred[2], top_y);
   HorizontalPred_16(YPred[3], left_y);
@@ -241,16 +241,14 @@ static void TrueMotion_8(uint8_t* dst, uint8_t* left_u, uint8_t* top_u, uint8_t 
   }
 }
 
-static void IntraChromaPreds_C(
-		uint8_t UVPred[4][8*16],
-        uint8_t left_u[8], uint8_t top_u[8], uint8_t top_left_u,
-		uint8_t left_v[8], uint8_t top_v[8], uint8_t top_left_v,
-		int x, int y) {
+static void IntraChromaPreds_C(uint8_t UVPred[4][8*16], uint8_t left_u[8],
+		uint8_t top_u[8], uint8_t top_left_u, uint8_t left_v[8], uint8_t top_v[8],
+		uint8_t top_left_v, int x, int y) {
 //#pragma HLS ARRAY_PARTITION variable=top_u complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=left_u complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=top_v complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=left_v complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=UVPred complete dim=2
+//#pragma HLS ARRAY_PARTITION variable=UVPred complete dim=0
   // U V block
   DCMode_8(UVPred[0], left_u, top_u, left_v, top_v, x, y);
   VerticalPred_8(UVPred[2], top_u, top_v);
@@ -1125,11 +1123,11 @@ static void copy_16_uint8(uint8_t dst[16], uint8_t src[16]){
 	}
 }
 
-static void PickBestIntra16(uint8_t Yin[16*16], uint8_t Yout[16*16], uint8_t YPred[4][16*16],
-		VP8ModeScore* rd, VP8SegmentInfo* const dqm) {
+static void PickBestIntra16(uint8_t Yin[16*16], uint8_t Yout[16*16],
+		VP8ModeScore* rd, VP8SegmentInfo* const dqm, uint8_t left_y[16],
+		uint8_t top_y[20], uint8_t top_left_y, int x, int y) {
 // #pragma HLS ARRAY_PARTITION variable=Yout complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
-// #pragma HLS ARRAY_PARTITION variable=YPred complete dim=2
 // #pragma HLS ARRAY_PARTITION variable=rd->y_ac_levels complete dim=0
 // #pragma HLS ARRAY_PARTITION variable=rd->y_dc_levels complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=dqm->y1_.sharpen_ complete dim=1
@@ -1151,10 +1149,14 @@ static void PickBestIntra16(uint8_t Yin[16*16], uint8_t Yout[16*16], uint8_t YPr
   VP8ModeScore* rd_best = rd;
   int mode;
   uint8_t Yout_tmp[16*16];
+  uint8_t YPred[4][16*16];
 
 #pragma HLS ARRAY_PARTITION variable=rd_tmp.y_ac_levels complete dim=0
 #pragma HLS ARRAY_PARTITION variable=rd_tmp.y_dc_levels complete dim=1
 #pragma HLS ARRAY_PARTITION variable=Yout_tmp complete dim=1
+#pragma HLS ARRAY_PARTITION variable=YPred complete dim=0
+
+  Intra16Preds_C(YPred, left_y, top_y, top_left_y, x, y);
 
   for (mode = 0; mode < NUM_PRED_MODES; ++mode) {
     uint8_t* const tmp_dst = Yout_tmp;  // scratch buffer
@@ -1685,11 +1687,12 @@ static void CopyUVout(uint8_t dst[8*16], uint8_t src[8*16]) {
   }
 }
 
-static void PickBestUV(VP8SegmentInfo* const dqm, uint8_t UVin[8*16], uint8_t UVPred[4][8*16],
-		uint8_t UVout[8*16], VP8ModeScore* const rd, int x, DError top_derr[1024], DError left_derr) {
+static void PickBestUV(VP8SegmentInfo* const dqm, uint8_t UVin[8*16], uint8_t UVout[8*16],
+		VP8ModeScore* const rd, DError top_derr[1024], DError left_derr, uint8_t left_u[8],
+		uint8_t top_u[8], uint8_t top_left_u, uint8_t left_v[8], uint8_t top_v[8],
+		uint8_t top_left_v, int x, int y) {
 // #pragma HLS ARRAY_PARTITION variable=UVout complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=UVin complete dim=1
-// #pragma HLS ARRAY_PARTITION variable=UVPred complete dim=2
 // #pragma HLS ARRAY_PARTITION variable=rd->uv_levels complete dim=0
 // #pragma HLS ARRAY_PARTITION variable=dqm->uv_.sharpen_ complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=dqm->uv_.zthresh_ complete dim=1
@@ -1706,7 +1709,22 @@ static void PickBestUV(VP8SegmentInfo* const dqm, uint8_t UVin[8*16], uint8_t UV
   uint8_t* dst = UVout;
   int mode;
   int i, j, k;
+  uint8_t UVPred[4][8*16];
+
 #pragma HLS ARRAY_PARTITION variable=tmp_dst complete dim=1
+#pragma HLS ARRAY_PARTITION variable=UVPred complete dim=0
+
+  IntraChromaPreds_C(UVPred, left_u, top_u, top_left_u, left_v, top_v, top_left_v, x,  y);
+
+  if(x == 0){
+	for(j=0;j<2;j++){
+#pragma HLS unroll
+	  for(i=0;i<2;i++){
+#pragma HLS unroll
+		left_derr[j][i] = 0;
+	  }
+	}
+  }
 
   for (mode = 0; mode < NUM_PRED_MODES; ++mode) {
     VP8ModeScore rd_uv;
@@ -1776,8 +1794,6 @@ void VP8Decimate_snap(uint8_t Yin[16*16], uint8_t Yout16[16*16], uint8_t Yout4[1
 //#pragma HLS ARRAY_PARTITION variable=top_derr complete dim=3
 //#pragma HLS ARRAY_PARTITION variable=left_derr complete dim=0
 
-  uint8_t YPred[4][16*16];
-  uint8_t UVPred[4][8*16];
   VP8ModeScore rd_i16;
   VP8ModeScore rd_i4;
   VP8ModeScore rd_uv;
@@ -1787,8 +1803,6 @@ void VP8Decimate_snap(uint8_t Yin[16*16], uint8_t Yout16[16*16], uint8_t Yout4[1
 #pragma HLS ARRAY_PARTITION variable=rd_i4.modes_i4 complete dim=1
 #pragma HLS ARRAY_PARTITION variable=rd_uv.uv_levels complete dim=0
 #pragma HLS ARRAY_PARTITION variable=rd_uv.derr complete dim=0
-#pragma HLS ARRAY_PARTITION variable=YPred complete dim=2
-#pragma HLS ARRAY_PARTITION variable=UVPred complete dim=2
 
   InitScore(&rd_i16);
   InitScore(&rd_i4);
@@ -1797,11 +1811,10 @@ void VP8Decimate_snap(uint8_t Yin[16*16], uint8_t Yout16[16*16], uint8_t Yout4[1
   // We can perform predictions for Luma16x16 and Chroma8x8 already.
   // Luma4x4 predictions needs to be done as-we-go.
 
-  Intra16Preds_C( YPred, left_y, top_y, top_left_y, x, y);
-  PickBestIntra16(Yin, Yout16, YPred, &rd_i16, dqm);
+  PickBestIntra16(Yin, Yout16, &rd_i16, dqm, left_y, top_y, top_left_y, x, y);
 
-  IntraChromaPreds_C(UVPred, left_u, top_u, top_left_u, left_v, top_v, top_left_v, x,  y);
-  PickBestUV(dqm, UVin, UVPred, UVout, &rd_uv, x, top_derr, left_derr);
+  PickBestUV(dqm, UVin, UVout, &rd_uv, top_derr, left_derr, left_u, top_u,
+		  top_left_u, left_v, top_v, top_left_v, x,  y);
 
   PickBestIntra4(dqm, Yin, Yout4, &rd_i4, left_y, top_left_y, top_y);
 
@@ -2464,11 +2477,11 @@ static int process_action(snap_membus_t *din_gmem,
 	snap_membus_t dqm_tmp[12];
 	snap_membus_t data_tmp[14];
 	DError top_derr[1024] = {0};
-	DError left_derr = {0};
+	DError left_derr;
 	VP8SegmentInfo dqm;
 	DATA_O data_o;
-	int x = 0;
-	int y = 0;
+	int x;
+	int y;
 	int mb_w;
 	int mb_h;
 	uint64_t i_idx, o_idx, dqm_idx;		
@@ -2574,17 +2587,8 @@ static int process_action(snap_membus_t *din_gmem,
 #pragma HLS pipeline
 		  (dout_gmem + o_idx + (y * mb_w + x) * 14)[i] = data_tmp[i];
 		}
-		
+
 	  }
-	  
-	  for(j=0;j<2;j++){
-#pragma HLS unroll
-		for(i=0;i<2;i++){
-#pragma HLS unroll
-		  left_derr[j][i] = 0;
-		}
-	  }
-	  
 	}
 	
 	act_reg->Control.Retc = SNAP_RETC_SUCCESS;
