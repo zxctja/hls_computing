@@ -920,10 +920,6 @@ static int GetSSE16x16(const uint8_t* a, const uint8_t* b) {
   return count;
 }
 
-static int SSE16x16_C(const uint8_t* a, const uint8_t* b) {
-  return GetSSE16x16(a, b);
-}
-
 #define MULT_8B(a, b) (((a) * (b) + 128) >> 8)
 
 static int TTransform(const uint8_t* in, const uint16_t* w) {
@@ -1160,7 +1156,7 @@ static void PickBestIntra16(uint8_t Yin[16*16], uint8_t Yout[16*16],
     		rd_cur->y_dc_levels, dqm->y1_, dqm->y2_);
 
     // Measure RD-score
-    rd_cur->D = SSE16x16_C(src, tmp_dst);
+    rd_cur->D = GetSSE16x16(src, tmp_dst);
     rd_cur->SD = MULT_8B(tlambda, Disto16x16_C(src, tmp_dst, kWeightY));
     rd_cur->H = VP8FixedCostsI16[mode];
 	rd_cur->R = VP8GetCostLuma16(rd_cur);
@@ -1213,10 +1209,6 @@ static int GetSSE4x4(const uint8_t* a, const uint8_t* b) {
     }
   }
   return count;
-}
-
-static int SSE4x4_C(const uint8_t* a, const uint8_t* b) {
-  return GetSSE4x4(a, b);
 }
 
 static void AddScore(VP8ModeScore* const dst, const VP8ModeScore* const src) {
@@ -1567,7 +1559,7 @@ static int PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t
           ReconstructIntra4(tmp_levels[mode], tmp_pred[mode], src[i4_], tmp_dst[mode], dqm->y1_) << i4_;
 
       // Compute RD-score
-      rd_tmp[mode].D = SSE4x4_C(src[i4_], tmp_dst[mode]);
+      rd_tmp[mode].D = GetSSE4x4(src[i4_], tmp_dst[mode]);
       rd_tmp[mode].SD = MULT_8B(tlambda, Disto4x4_C(src[i4_], tmp_dst[mode], kWeightY));
       rd_tmp[mode].H = VP8FixedCostsI4[mode];
 	  rd_tmp[mode].R = VP8GetCostLuma4(tmp_levels[mode]);
@@ -1614,10 +1606,6 @@ static int GetSSE16x8(const uint8_t* a, const uint8_t* b) {
     }
   }
   return count;
-}
-
-static int SSE16x8_C(const uint8_t* a, const uint8_t* b) {
-  return GetSSE16x8(a, b);
 }
 
 const uint16_t VP8FixedCostsUV[4] = { 302, 984, 439, 642 };
@@ -1732,7 +1720,7 @@ static void PickBestUV(VP8SegmentInfo* const dqm, uint8_t UVin[8*16], uint8_t UV
     		dqm->uv_, top_derr, left_derr, x, rd_uv.derr);
 
     // Compute RD-score
-    rd_uv.D  = SSE16x8_C(src, tmp_dst);
+    rd_uv.D  = GetSSE16x8(src, tmp_dst);
     rd_uv.SD = 0;    // not calling TDisto here: it tends to flatten areas.
     rd_uv.H  = VP8FixedCostsUV[mode];
 	rd_uv.R  = VP8GetCostUV(&rd_uv);
