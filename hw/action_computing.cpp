@@ -1111,7 +1111,7 @@ static void Copy_16_uint8(uint8_t dst[16], uint8_t src[16]){
 	}
 }
 
-void PickBestIntra16(uint8_t Yin[16*16], uint8_t Yout[16*16],
+static void PickBestIntra16(uint8_t Yin[16*16], uint8_t Yout[16*16],
 		VP8ModeScore* rd, VP8SegmentInfo* const dqm, uint8_t left_y[16],
 		uint8_t top_y[20], uint8_t top_left_y, int x, int y) {
 //#pragma HLS ARRAY_PARTITION variable=Yout complete dim=1
@@ -1472,7 +1472,7 @@ static int PickBestMode_4(VP8ModeScore rd_tmp[10]){
 	return best_mode_8;
 }
 
-int PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t Yout[16*16],
+static int PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t Yout[16*16],
 		VP8ModeScore* const rd, uint8_t y_left[16], uint8_t y_top_left, uint8_t y_top[20]) {
 #pragma HLS pipeline
 //#pragma HLS ARRAY_PARTITION variable=Yout complete dim=1
@@ -1670,7 +1670,7 @@ static void CopyUVout(uint8_t dst[8*16], uint8_t src[8*16]) {
   }
 }
 
-void PickBestUV(VP8SegmentInfo* const dqm, uint8_t UVin[8*16], uint8_t UVout[8*16],
+static void PickBestUV(VP8SegmentInfo* const dqm, uint8_t UVin[8*16], uint8_t UVout[8*16],
 		VP8ModeScore* const rd, DError top_derr[1024], DError left_derr, uint8_t left_u[8],
 		uint8_t top_u[8], uint8_t top_left_u, uint8_t left_v[8], uint8_t top_v[8],
 		uint8_t top_left_v, int x, int y) {
