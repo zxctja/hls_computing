@@ -125,7 +125,7 @@ static void TrueMotion_16(uint8_t* dst, uint8_t* left, uint8_t* top, uint8_t top
 
 static void Intra16Preds_C(uint8_t YPred[4][16*16], uint8_t left_y[16],
 		uint8_t top_y[20], uint8_t top_left_y, int x, int y) {
-#pragma HLS pipeline
+//#pragma HLS pipeline
 //#pragma HLS ARRAY_PARTITION variable=top_y complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=left_y complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=YPred complete dim=0
@@ -448,6 +448,7 @@ static void TM4(uint8_t* dst, uint8_t* top, uint8_t* left, uint8_t top_left) {
 
 static void Intra4Preds_C(
 		uint8_t Pred[10][16], uint8_t left[4], uint8_t top_left, uint8_t top[4], uint8_t top_right[4]) {
+#pragma HLS inline
 // #pragma HLS ARRAY_PARTITION variable=left complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=top complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=top_right complete dim=1
@@ -644,7 +645,7 @@ static void ITransformOne(const uint8_t* ref, const int16_t* in,
 static int ReconstructIntra16(
 		const uint8_t YPred[16*16], const uint8_t Ysrc[16*16], uint8_t Yout[16*16],
 		int16_t y_ac_levels[16][16], int16_t y_dc_levels[16], VP8Matrix y1, VP8Matrix y2) {
-#pragma HLS pipeline
+//#pragma HLS pipeline
 // #pragma HLS ARRAY_PARTITION variable=y1.sharpen_ complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=y1.zthresh_ complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=y1.bias_ complete dim=1
@@ -1669,7 +1670,7 @@ static void PickBestUV(VP8SegmentInfo* const dqm, uint8_t UVin[8*16], uint8_t UV
 		VP8ModeScore* const rd, DError top_derr[1024], DError left_derr, uint8_t left_u[8],
 		uint8_t top_u[8], uint8_t top_left_u, uint8_t left_v[8], uint8_t top_v[8],
 		uint8_t top_left_v, int x, int y) {
-#pragma HLS pipeline
+//#pragma HLS pipeline
 //#pragma HLS ARRAY_PARTITION variable=UVout complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=UVin complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=rd->uv_levels complete dim=0
