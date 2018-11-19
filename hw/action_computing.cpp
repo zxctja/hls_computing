@@ -448,7 +448,6 @@ static void TM4(uint8_t* dst, uint8_t* top, uint8_t* left, uint8_t top_left) {
 
 static void Intra4Preds_C(
 		uint8_t Pred[10][16], uint8_t left[4], uint8_t top_left, uint8_t top[4], uint8_t top_right[4]) {
-#pragma HLS inline
 // #pragma HLS ARRAY_PARTITION variable=left complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=top complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=top_right complete dim=1
