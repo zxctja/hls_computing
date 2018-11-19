@@ -1684,6 +1684,7 @@ static void PickBestUV(VP8SegmentInfo* const dqm, uint8_t UVin[8*16], uint8_t UV
 //#pragma HLS ARRAY_PARTITION variable=UVout complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=UVin complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=rd->uv_levels complete dim=0
+//#pragma HLS ARRAY_PARTITION variable=rd->derr complete dim=0
 //#pragma HLS ARRAY_PARTITION variable=dqm->uv_.sharpen_ complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=dqm->uv_.zthresh_ complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=dqm->uv_.bias_ complete dim=1
@@ -1760,6 +1761,7 @@ void VP8Decimate_snap(uint8_t Yin[16*16], uint8_t Yout16[16*16], uint8_t Yout4[1
 //#pragma HLS ARRAY_PARTITION variable=UVout complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=UVin complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=rd->uv_levels complete dim=0
+//#pragma HLS ARRAY_PARTITION variable=rd->derr complete dim=0
 //#pragma HLS ARRAY_PARTITION variable=rd->y_ac_levels complete dim=0
 //#pragma HLS ARRAY_PARTITION variable=rd->y_dc_levels complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=rd->modes_i4 complete dim=1
@@ -2480,7 +2482,9 @@ static int process_action(snap_membus_t *din_gmem,
 	int mb_h;
 	uint64_t i_idx, o_idx, dqm_idx;		
 	int i, j;
-	
+
+#pragma HLS ARRAY_PARTITION variable=dqm_tmp complete dim=1
+#pragma HLS ARRAY_PARTITION variable=data_tmp complete dim=1
 #pragma HLS ARRAY_PARTITION variable=YUVin complete dim=1
 #pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
 #pragma HLS ARRAY_PARTITION variable=Yout16 complete dim=1
@@ -2506,8 +2510,6 @@ static int process_action(snap_membus_t *din_gmem,
 #pragma HLS ARRAY_PARTITION variable=top_derr complete dim=2
 #pragma HLS ARRAY_PARTITION variable=top_derr complete dim=3
 #pragma HLS ARRAY_PARTITION variable=left_derr complete dim=0
-#pragma HLS ARRAY_PARTITION variable=dqm_tmp complete dim=1
-#pragma HLS ARRAY_PARTITION variable=data_tmp complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm.y1_.sharpen_ complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm.y1_.zthresh_ complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm.y1_.bias_ complete dim=1
