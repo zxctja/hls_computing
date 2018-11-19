@@ -1509,11 +1509,6 @@ static void PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_
 #pragma HLS ARRAY_PARTITION variable=top_right complete dim=1
 #pragma HLS ARRAY_PARTITION variable=src complete dim=0
 #pragma HLS ARRAY_PARTITION variable=top_mem complete dim=1
-#pragma HLS ARRAY_PARTITION variable=y1.sharpen_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=y1.zthresh_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=y1.bias_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=y1.iq_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=y1.q_ complete dim=1
 
   top_left = y_top_left;
   for (i = 0; i < 4; ++i) {
