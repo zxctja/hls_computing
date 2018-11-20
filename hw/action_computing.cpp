@@ -920,6 +920,7 @@ static const uint16_t kWeightY[16] = {
 #define FLATNESS_PENALTY   140     // roughly ~1bit per block
 
 static int GetSSE16x16(const uint8_t* a, const uint8_t* b) {
+#pragma HLS inline off
   int count = 0;
   int y, x;
   for (y = 0; y < 16; ++y) {
@@ -981,6 +982,7 @@ static int Disto4x4_C(const uint8_t* const a, const uint8_t* const b,
 
 static int Disto16x16_C(const uint8_t* const a, const uint8_t* const b,
                         const uint16_t* const w) {
+#pragma HLS inline off
   int D = 0;
   int i,j,n;
   uint8_t tmp_a[16][16], tmp_b[16][16];
@@ -1009,7 +1011,7 @@ static int Disto16x16_C(const uint8_t* const a, const uint8_t* const b,
 
 
     for (i = 0; i < 16; i++) {
-//#pragma HLS unroll
+#pragma HLS unroll
       D += Disto4x4_C(tmp_a[i], tmp_b[i], w);
     }
 
@@ -1071,6 +1073,7 @@ static void CopyScore(VP8ModeScore* const dst, const VP8ModeScore* const src) {
 }
 
 static int VP8GetCostLuma16(VP8ModeScore* rd_cur){
+#pragma HLS inline off
 	int64_t test_R = 0;
 	int y, x;
 	for (y = 0; y < 16; ++y) {
@@ -1623,6 +1626,7 @@ static void StoreDiffusionErrors(DError top_derr[1024], DError left_derr, int x,
 }
 
 static int64_t VP8GetCostUV(int16_t uv_levels[4 + 4][16]){
+#pragma HLS inline off
 	int64_t test_R = 0;
 	int x, y;
 	for (y = 0; y < 8; ++y) {
