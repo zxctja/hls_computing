@@ -695,7 +695,7 @@ static int ReconstructIntra16(
   }
 
   for (n = 0; n < 16; n++) {
-#pragma HLS unroll
+//#pragma HLS unroll
 	  FTransform_C(tmp_src[n], tmp_pred[n], tmp[n]);
   }
 
@@ -725,7 +725,7 @@ static int ReconstructIntra16(
   }
 
   for (n = 0; n < 16; n++) {
-#pragma HLS unroll
+//#pragma HLS unroll
 	  ITransformOne(tmp_pred[n], tmp[n], tmp_out[n]);
   }
 
@@ -882,7 +882,7 @@ static int ReconstructUV(int16_t uv_levels[8][16], uint8_t uv_p[8*16],
   }
 
   for (n = 0; n < 8; n++) {
-#pragma HLS unroll
+//#pragma HLS unroll
 	  FTransform_C(tmp_src[n], tmp_p[n], tmp[n]);
   }
 
@@ -894,7 +894,7 @@ static int ReconstructUV(int16_t uv_levels[8][16], uint8_t uv_p[8*16],
   }
 
   for (n = 0; n < 8; n++) {
-#pragma HLS unroll
+//#pragma HLS unroll
 	  ITransformOne(tmp_p[n], tmp[n], tmp_out[n]);
   }
 
@@ -1011,7 +1011,7 @@ static int Disto16x16_C(const uint8_t* const a, const uint8_t* const b,
 
 
     for (i = 0; i < 16; i++) {
-#pragma HLS unroll
+//#pragma HLS unroll
       D += Disto4x4_C(tmp_a[i], tmp_b[i], w);
     }
 
