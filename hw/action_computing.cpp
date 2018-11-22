@@ -889,7 +889,7 @@ static int ReconstructUV(int16_t uv_levels[8][16], uint8_t uv_p[8*16],
   CorrectDCValues(top_derr, left_derr, x, y, &uv, tmp, derr);
 
   for (n = 0; n < 8; n++) {
-#pragma HLS unroll
+//#pragma HLS unroll
     nz |= QuantizeBlock_C(tmp[n], uv_levels[n], &uv) << n;
   }
 
@@ -1208,7 +1208,7 @@ static int GetSSE4x4(const uint8_t* a, const uint8_t* b) {
   int count = 0;
   int y, x;
   for (y = 0; y < 4; ++y) {
-#pragma HLS unroll
+//#pragma HLS unroll
     for (x = 0; x < 4; ++x) {
 #pragma HLS unroll
       const int diff = (int)a[x + y * 4] - b[x + y * 4];
@@ -1391,11 +1391,15 @@ static int VP8IteratorRotateI4(uint8_t y_left[16], uint8_t y_top_left,
 
 static int VP8GetCostLuma4(int16_t tmp_levels[16]){
 	int64_t test_R = 0;
-	int y;
-	for (y = 0; y < 16; ++y) {
+	int x, y;
+	for (y = 0; y < 4; ++y) {
+//#pragma HLS unroll
+	  for (x = 0; x < 4; ++x) {
 #pragma HLS unroll
-	  test_R += tmp_levels[y] * tmp_levels[y];
+		test_R += tmp_levels[y * 4 + x] * tmp_levels[y * 4 + x];
+	  }
 	}
+
 	return test_R << 10;
 }
 
