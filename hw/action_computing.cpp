@@ -1174,9 +1174,9 @@ static void PickBestIntra16(uint8_t Yin[16*16], uint8_t Yout[16*16],
 
   const int lambda = dqm->lambda_i16_;
   const int tlambda = dqm->tlambda_;
-  VP8ModeScore rd_tmp[NUM_PRED_MODES];
   int mode;
   int best_mode;
+  VP8ModeScore rd_tmp[NUM_PRED_MODES];
   uint8_t Yout_tmp[NUM_PRED_MODES][16*16];
   uint8_t YPred[NUM_PRED_MODES][16*16];
   int16_t tmp_ac_levels[NUM_PRED_MODES][16][16];
