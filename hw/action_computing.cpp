@@ -1072,7 +1072,7 @@ static void CopyScore(VP8ModeScore* const dst, const VP8ModeScore* const src) {
   dst->score = src->score;
 }
 
-static int VP8GetCostLuma16(VP8ModeScore* rd_cur){
+static int VP8GetCostLuma16(int16_t y_ac_levels[16][16], int16_t y_dc_levels[16]){
 #pragma HLS inline off
 	int64_t test_R = 0;
 	int y, x;
@@ -1080,9 +1080,9 @@ static int VP8GetCostLuma16(VP8ModeScore* rd_cur){
 //#pragma HLS unroll
 	  for (x = 0; x < 16; ++x) {
 #pragma HLS unroll
-	    test_R += rd_cur->y_ac_levels[y][x] * rd_cur->y_ac_levels[y][x];
+	    test_R += y_ac_levels[y][x] * y_ac_levels[y][x];
 	  }
-	  test_R += rd_cur->y_dc_levels[y] * rd_cur->y_dc_levels[y];
+	  test_R += y_dc_levels[y] * y_dc_levels[y];
 	}
 	return test_R << 10;
 }
@@ -1122,6 +1122,36 @@ static void Copy_16_uint8(uint8_t dst[16], uint8_t src[16]){
 	}
 }
 
+static int PickBestModeYUV(VP8ModeScore rd_tmp[NUM_PRED_MODES]){
+
+    int best_mode_0;
+    int best_mode_1;
+    int best_mode_2;
+
+	if(rd_tmp[1].score < rd_tmp[0].score){
+		best_mode_0 = 1;
+	}
+	else{
+		best_mode_0 = 0;
+	}
+
+	if(rd_tmp[3].score < rd_tmp[2].score){
+		best_mode_1 = 3;
+	}
+	else{
+		best_mode_1 = 2;
+	}
+
+	if(rd_tmp[best_mode_1].score < rd_tmp[best_mode_0].score){
+		best_mode_2 = best_mode_1;
+	}
+	else{
+		best_mode_2 = best_mode_0;
+	}
+
+	return best_mode_2;
+}
+
 static void PickBestIntra16(uint8_t Yin[16*16], uint8_t Yout[16*16],
 		VP8ModeScore* rd, VP8SegmentInfo* const dqm, uint8_t left_y[16],
 		uint8_t top_y[20], uint8_t top_left_y, int x, int y) {
@@ -1144,14 +1174,18 @@ static void PickBestIntra16(uint8_t Yin[16*16], uint8_t Yout[16*16],
 
   const int lambda = dqm->lambda_i16_;
   const int tlambda = dqm->tlambda_;
-  VP8ModeScore rd_tmp;
+  VP8ModeScore rd_tmp[NUM_PRED_MODES];
   int mode;
-  uint8_t Yout_tmp[16*16];
-  uint8_t YPred[4][16*16];
+  int best_mode;
+  uint8_t Yout_tmp[NUM_PRED_MODES][16*16];
+  uint8_t YPred[NUM_PRED_MODES][16*16];
+  int16_t tmp_ac_levels[NUM_PRED_MODES][16][16];
+  int16_t tmp_dc_levels[NUM_PRED_MODES][16];
 
-#pragma HLS ARRAY_PARTITION variable=rd_tmp.y_ac_levels complete dim=0
-#pragma HLS ARRAY_PARTITION variable=rd_tmp.y_dc_levels complete dim=1
-#pragma HLS ARRAY_PARTITION variable=Yout_tmp complete dim=1
+#pragma HLS ARRAY_PARTITION variable=tmp_ac_levels complete dim=0
+#pragma HLS ARRAY_PARTITION variable=tmp_dc_levels complete dim=0
+#pragma HLS ARRAY_PARTITION variable=rd_tmp complete dim=1
+#pragma HLS ARRAY_PARTITION variable=Yout_tmp complete dim=0
 #pragma HLS ARRAY_PARTITION variable=YPred complete dim=0
 #pragma HLS ARRAY_PARTITION variable=VP8FixedCostsI16 complete dim=1
 
@@ -1159,26 +1193,26 @@ static void PickBestIntra16(uint8_t Yin[16*16], uint8_t Yout[16*16],
 
   for (mode = 0; mode < NUM_PRED_MODES; ++mode) {
     // Reconstruct
-	rd_tmp.nz = ReconstructIntra16(YPred[mode], Yin, Yout_tmp, rd_tmp.y_ac_levels,
-    		rd_tmp.y_dc_levels, dqm->y1_, dqm->y2_);
+	rd_tmp[mode].nz = ReconstructIntra16(YPred[mode], Yin, Yout_tmp[mode], tmp_ac_levels[mode],
+			tmp_dc_levels[mode], dqm->y1_, dqm->y2_);
 
     // Measure RD-score
-	rd_tmp.D = GetSSE16x16(Yin, Yout_tmp);
-	rd_tmp.SD = MULT_8B(tlambda, Disto16x16_C(Yin, Yout_tmp, kWeightY));
-	rd_tmp.H = VP8FixedCostsI16[mode];
-	rd_tmp.R = VP8GetCostLuma16(&rd_tmp);
+	rd_tmp[mode].D = GetSSE16x16(Yin, Yout_tmp[mode]);
+	rd_tmp[mode].SD = MULT_8B(tlambda, Disto16x16_C(Yin, Yout_tmp[mode], kWeightY));
+	rd_tmp[mode].H = VP8FixedCostsI16[mode];
+	rd_tmp[mode].R = VP8GetCostLuma16(tmp_ac_levels[mode], tmp_dc_levels[mode]);
 
     // Since we always examine Intra16 first, we can overwrite *rd directly.
-    SetRDScore(lambda, &rd_tmp);
-
-    if (rd_tmp.score < rd->score) {
-      rd->mode_i16 = mode;
-      CopyScore(rd, &rd_tmp);
-	  Copy_16x16_int16(rd->y_ac_levels, rd_tmp.y_ac_levels);
-	  Copy_16_int16(rd->y_dc_levels, rd_tmp.y_dc_levels);
-	  Copy_256_uint8(Yout, Yout_tmp);
-    }
+    SetRDScore(lambda, &rd_tmp[mode]);
   }
+
+  best_mode = PickBestModeYUV(rd_tmp);
+
+  rd->mode_i16 = best_mode;
+  CopyScore(rd, &rd_tmp[best_mode]);
+  Copy_16x16_int16(rd->y_ac_levels, tmp_ac_levels[best_mode]);
+  Copy_16_int16(rd->y_dc_levels, tmp_dc_levels[best_mode]);
+  Copy_256_uint8(Yout, Yout_tmp[best_mode]);
 
   SetRDScore(dqm->lambda_mode_, rd);   // finalize score for mode decision.
 
@@ -1542,10 +1576,10 @@ static void PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_
   VP8ModeScore rd_i4;
   int mode;
   int best_mode;
-  uint8_t tmp_pred[10][16];    // scratch buffer.
-  VP8ModeScore rd_tmp[10];
-  int16_t tmp_levels[10][16];
-  uint8_t tmp_dst[10][16];
+  uint8_t tmp_pred[NUM_BMODES][16];    // scratch buffer.
+  VP8ModeScore rd_tmp[NUM_BMODES];
+  int16_t tmp_levels[NUM_BMODES][16];
+  uint8_t tmp_dst[NUM_BMODES][16];
 
 #pragma HLS ARRAY_PARTITION variable=tmp_dst complete dim=0
 #pragma HLS ARRAY_PARTITION variable=tmp_levels complete dim=0
@@ -1696,12 +1730,19 @@ static void PickBestUV(VP8SegmentInfo* const dqm, uint8_t UVin[8*16], uint8_t UV
 //#pragma HLS ARRAY_PARTITION variable=left_v complete dim=1
 
   const int lambda = dqm->lambda_uv_;
-  uint8_t tmp_dst[8*16];  // scratch buffer
   int mode;
+  int best_mode;
   int i, j, k;
-  uint8_t UVPred[4][8*16];
+  uint8_t UVPred[NUM_PRED_MODES][8*16];
+  uint8_t tmp_dst[NUM_PRED_MODES][8*16];  // scratch buffer
+  VP8ModeScore rd_uv[NUM_PRED_MODES];
+  int16_t tmp_uv_levels[NUM_PRED_MODES][4 + 4][16];
+  int8_t tmp_derr[NUM_PRED_MODES][2][3];
 
-#pragma HLS ARRAY_PARTITION variable=tmp_dst complete dim=1
+#pragma HLS ARRAY_PARTITION variable=rd_uv complete dim=1
+#pragma HLS ARRAY_PARTITION variable=tmp_uv_levels complete dim=0
+#pragma HLS ARRAY_PARTITION variable=tmp_derr complete dim=0
+#pragma HLS ARRAY_PARTITION variable=tmp_dst complete dim=0
 #pragma HLS ARRAY_PARTITION variable=UVPred complete dim=0
 
   IntraChromaPreds_C(UVPred, left_u, top_u, top_left_u, left_v, top_v, top_left_v, x,  y);
@@ -1717,29 +1758,26 @@ static void PickBestUV(VP8SegmentInfo* const dqm, uint8_t UVin[8*16], uint8_t UV
   }
 
   for (mode = 0; mode < NUM_PRED_MODES; mode++) {
-    VP8ModeScore rd_uv;
-#pragma HLS ARRAY_PARTITION variable=rd_uv.uv_levels complete dim=0
-#pragma HLS ARRAY_PARTITION variable=rd_uv.derr complete dim=0
     // Reconstruct
-    rd_uv.nz = ReconstructUV(rd_uv.uv_levels, UVPred[mode], UVin, tmp_dst,
-    		dqm->uv_, top_derr, left_derr, x, y, rd_uv.derr);
+    rd_uv[mode].nz = ReconstructUV(tmp_uv_levels[mode], UVPred[mode], UVin, tmp_dst[mode],
+    		dqm->uv_, top_derr, left_derr, x, y, tmp_derr[mode]);
 
     // Compute RD-score
-    rd_uv.D  = GetSSE16x8(UVin, tmp_dst);
-    rd_uv.SD = 0;    // not calling TDisto here: it tends to flatten areas.
-    rd_uv.H  = VP8FixedCostsUV[mode];
-	rd_uv.R  = VP8GetCostUV(rd_uv.uv_levels);
+    rd_uv[mode].D  = GetSSE16x8(UVin, tmp_dst[mode]);
+    rd_uv[mode].SD = 0;    // not calling TDisto here: it tends to flatten areas.
+    rd_uv[mode].H  = VP8FixedCostsUV[mode];
+	rd_uv[mode].R  = VP8GetCostUV(tmp_uv_levels[mode]);
 
-    SetRDScore(lambda, &rd_uv);
-
-    if (rd_uv.score < rd->score) {
-      CopyScore(rd, &rd_uv);
-      rd->mode_uv = mode;
-	  CopyUVLevel(rd->uv_levels, rd_uv.uv_levels);
-	  CopyUVderr(rd->derr, rd_uv.derr);
-	  CopyUVout(UVout, tmp_dst);
-    }
+    SetRDScore(lambda, &rd_uv[mode]);
   }
+
+  best_mode = PickBestModeYUV(rd_uv);
+
+  CopyScore(rd, &rd_uv[best_mode]);
+  rd->mode_uv = best_mode;
+  CopyUVLevel(rd->uv_levels, tmp_uv_levels[best_mode]);
+  CopyUVderr(rd->derr, tmp_derr[best_mode]);
+  CopyUVout(UVout, tmp_dst[best_mode]);
 
   // store diffusion errors for next block
   StoreDiffusionErrors(top_derr, left_derr, x, rd);
