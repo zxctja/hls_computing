@@ -1477,19 +1477,19 @@ static int PickBestMode(VP8ModeScore rd_tmp[10]){
 	return best_mode_8;
 }
 
-void PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t Yout[16*16],
+static void PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t Yout[16*16],
 		VP8ModeScore* const rd, uint8_t y_left[16], uint8_t y_top_left, uint8_t y_top[20]) {
 //#pragma HLS pipeline
-#pragma HLS ARRAY_PARTITION variable=Yout complete dim=1
-#pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
-#pragma HLS ARRAY_PARTITION variable=rd->y_ac_levels complete dim=0
-#pragma HLS ARRAY_PARTITION variable=dqm->y1_.sharpen_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=dqm->y1_.zthresh_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=dqm->y1_.bias_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=dqm->y1_.iq_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=dqm->y1_.q_ complete dim=1
-#pragma HLS ARRAY_PARTITION variable=y_left complete dim=1
-#pragma HLS ARRAY_PARTITION variable=y_top complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=Yout complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=rd->y_ac_levels complete dim=0
+//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.sharpen_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.zthresh_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.bias_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.iq_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.q_ complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=y_left complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=y_top complete dim=1
 
   const int lambda = dqm->lambda_i4_;
   const int tlambda = dqm->tlambda_;
