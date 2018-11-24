@@ -1049,6 +1049,11 @@ enum { B_DC_PRED = 0,   // 4x4 modes
 #define RD_DISTO_MULT      256  // distortion multiplier (equivalent of lambda)
 
 static void SetRDScore(int lambda, VP8ModeScore* const rd) {
+#pragma HLS inline off
+  rd->score = (rd->R + rd->H) * lambda + RD_DISTO_MULT * (rd->D + rd->SD);
+}
+
+static void SetRDScore_i4(int lambda, VP8ModeScore* const rd) {
   rd->score = (rd->R + rd->H) * lambda + RD_DISTO_MULT * (rd->D + rd->SD);
 }
 
@@ -1472,19 +1477,19 @@ static int PickBestMode(VP8ModeScore rd_tmp[10]){
 	return best_mode_8;
 }
 
-static void PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t Yout[16*16],
+void PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_t Yout[16*16],
 		VP8ModeScore* const rd, uint8_t y_left[16], uint8_t y_top_left, uint8_t y_top[20]) {
 //#pragma HLS pipeline
-//#pragma HLS ARRAY_PARTITION variable=Yout complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=rd->y_ac_levels complete dim=0
-//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.sharpen_ complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.zthresh_ complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.bias_ complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.iq_ complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=dqm->y1_.q_ complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=y_left complete dim=1
-//#pragma HLS ARRAY_PARTITION variable=y_top complete dim=1
+#pragma HLS ARRAY_PARTITION variable=Yout complete dim=1
+#pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
+#pragma HLS ARRAY_PARTITION variable=rd->y_ac_levels complete dim=0
+#pragma HLS ARRAY_PARTITION variable=dqm->y1_.sharpen_ complete dim=1
+#pragma HLS ARRAY_PARTITION variable=dqm->y1_.zthresh_ complete dim=1
+#pragma HLS ARRAY_PARTITION variable=dqm->y1_.bias_ complete dim=1
+#pragma HLS ARRAY_PARTITION variable=dqm->y1_.iq_ complete dim=1
+#pragma HLS ARRAY_PARTITION variable=dqm->y1_.q_ complete dim=1
+#pragma HLS ARRAY_PARTITION variable=y_left complete dim=1
+#pragma HLS ARRAY_PARTITION variable=y_top complete dim=1
 
   const int lambda = dqm->lambda_i4_;
   const int tlambda = dqm->tlambda_;
@@ -1561,7 +1566,7 @@ static void PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_
       rd_tmp[mode].H = VP8FixedCostsI4[mode];
 	  rd_tmp[mode].R = VP8GetCostLuma4(tmp_levels[mode]);
 
-      SetRDScore(lambda, &rd_tmp[mode]);
+      SetRDScore_i4(lambda, &rd_tmp[mode]);
     }
 
     best_mode = PickBestMode(rd_tmp);
@@ -1570,7 +1575,7 @@ static void PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_
 	Copy_16_int16(rd->y_ac_levels[i4_], tmp_levels[best_mode]);
 	Copy_16_uint8(best_blocks[i4_], tmp_dst[best_mode]);
 
-    SetRDScore(dqm->lambda_mode_, &rd_i4);
+    SetRDScore_i4(dqm->lambda_mode_, &rd_i4);
     AddScore(rd, &rd_i4);
     rd->modes_i4[i4_] = best_mode;
     VP8IteratorRotateI4(y_left, y_top_left, y_top, i4_, top_mem,
