@@ -1400,7 +1400,7 @@ static int VP8GetCostLuma4(int16_t tmp_levels[16]){
 }
 
 static int PickBestMode(VP8ModeScore rd_tmp[10]){
-
+#pragma HLS inline off
     int best_mode_0;
     int best_mode_1;
     int best_mode_2;
@@ -1959,7 +1959,7 @@ void SegmentInfoLoad(VP8SegmentInfo* dqm, snap_membus_t dqm_tmp[12]){
 }
 
 void DATALoad(DATA_O* data_o, snap_membus_t data_tmp[14]){
-
+#pragma HLS inline off
 	data_tmp[0] = ((snap_membus_t)(ap_uint<64>)(data_o->info.D));
 	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.SD)) << 64;
 	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.H)) << 128;
