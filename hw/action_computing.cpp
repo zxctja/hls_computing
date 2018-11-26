@@ -743,9 +743,23 @@ static int ReconstructIntra16(
   return nz;
 }
 
+static void VP8MatrixLoad(VP8Matrix* dst, VP8Matrix* src){
+//#pragma HLS INTERFACE ap_none port=dst register
+#pragma HLS inline off
+	int i;
+	for(i=0;i<16;i++){
+#pragma HLS unroll
+		dst->q_[i]		 = src->q_[i]	   ;
+		dst->iq_[i]		 = src->iq_[i]	   ;
+		dst->bias_[i]	 = src->bias_[i]   ;
+		dst->zthresh_[i] = src->zthresh_[i];
+		dst->sharpen_[i] = src->sharpen_[i];
+	}
+}
+
 static int ReconstructIntra4(int16_t levels[16], uint8_t y_p[16],
 		uint8_t y_src[16], uint8_t y_out[16], VP8Matrix y1) {
-#pragma HLS inline
+#pragma HLS inline off
 //#pragma HLS ARRAY_PARTITION variable=y1.sharpen_ complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=y1.zthresh_ complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=y1.bias_ complete dim=1
@@ -757,11 +771,19 @@ static int ReconstructIntra4(int16_t levels[16], uint8_t y_p[16],
 //#pragma HLS ARRAY_PARTITION variable=y_p complete dim=1
   int nz = 0;
   int16_t tmp[16];
+  VP8Matrix y1_i;
 #pragma HLS ARRAY_PARTITION variable=tmp complete dim=1
+#pragma HLS ARRAY_PARTITION variable=y1_i.sharpen_ complete dim=1
+#pragma HLS ARRAY_PARTITION variable=y1_i.zthresh_ complete dim=1
+#pragma HLS ARRAY_PARTITION variable=y1_i.bias_ complete dim=1
+#pragma HLS ARRAY_PARTITION variable=y1_i.iq_ complete dim=1
+#pragma HLS ARRAY_PARTITION variable=y1_i.q_ complete dim=1
+
+  VP8MatrixLoad(&y1_i, &y1);
 
   FTransform_C(y_src, y_p, tmp);
 
-  nz = QuantizeBlock_C(tmp, levels, &y1);
+  nz = QuantizeBlock_C(tmp, levels, &y1_i);
 
   ITransformOne(y_p, tmp, y_out);
 
@@ -1920,8 +1942,8 @@ void VP8IteratorSaveBoundary_snap(uint8_t mbtype, int x, int y, int mb_w, int mb
 }
 
 void SegmentInfoLoad(VP8SegmentInfo* dqm, snap_membus_t dqm_tmp[12]){
+#pragma HLS inline
 	int i;
-
 	for(i=0;i<16;i++){
 #pragma HLS unroll
 		dqm->y1_.q_[i] = dqm_tmp[0] >> (16 * i);
@@ -1959,7 +1981,7 @@ void SegmentInfoLoad(VP8SegmentInfo* dqm, snap_membus_t dqm_tmp[12]){
 }
 
 void DATALoad(DATA_O* data_o, snap_membus_t data_tmp[14]){
-#pragma HLS inline off
+#pragma HLS inline
 	data_tmp[0] = ((snap_membus_t)(ap_uint<64>)(data_o->info.D));
 	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.SD)) << 64;
 	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.H)) << 128;
@@ -2410,8 +2432,8 @@ void DATALoad(DATA_O* data_o, snap_membus_t data_tmp[14]){
 }
 
 void YUVLoad(snap_membus_t YUVin[6], uint8_t Yin[16*16], uint8_t UVin[8*16]){
+#pragma HLS inline
 	int i, j;
-
 	for(j=0;j<4;j++){
 #pragma HLS unroll
 		for(i=0;i<64;i++){
