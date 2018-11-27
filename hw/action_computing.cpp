@@ -1982,12 +1982,12 @@ void SegmentInfoLoad(VP8SegmentInfo* dqm, snap_membus_t dqm_tmp[12]){
 
 void DATALoad(DATA_O* data_o, snap_membus_t data_tmp[14]){
 #pragma HLS inline
-	data_tmp[0] = ((snap_membus_t)(ap_uint<64>)(data_o->info.D));
-	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.SD)) << 64;
-	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.H)) << 128;
-	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.R)) << 192;
-	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.score)) << 256;
-	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[0 ])) << 320;
+//	data_tmp[0] = ((snap_membus_t)(ap_uint<64>)(data_o->info.D));
+//	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.SD)) << 64;
+//	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.H)) << 128;
+//	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.R)) << 192;
+//	data_tmp[0] |= ((snap_membus_t)(ap_uint<64>)(data_o->info.score)) << 256;
+	data_tmp[0] = ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[0 ])) << 320;
 	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[1 ])) << 336;
 	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[2 ])) << 352;
 	data_tmp[0] |= ((snap_membus_t)(ap_uint<16>)(data_o->info.y_dc_levels[3 ])) << 368;
