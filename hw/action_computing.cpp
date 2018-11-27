@@ -1214,9 +1214,9 @@ static void PickBestIntra16(uint8_t Yin[16*16], uint8_t Yout[16*16],
     if (mode == 0 || rd_tmp.score < rd->score) {
       rd->mode_i16 = mode;
       CopyScore(rd, &rd_tmp);
-	  Copy_16x16_int16(rd->y_ac_levels, rd_tmp.y_ac_levels);
-	  Copy_16_int16(rd->y_dc_levels, rd_tmp.y_dc_levels);
-	  Copy_256_uint8(Yout, Yout_tmp);
+      Copy_16x16_int16(rd->y_ac_levels, rd_tmp.y_ac_levels);
+      Copy_16_int16(rd->y_dc_levels, rd_tmp.y_dc_levels);
+      Copy_256_uint8(Yout, Yout_tmp);
     }
   }
 
