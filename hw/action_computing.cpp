@@ -683,7 +683,7 @@ static int ReconstructIntra16(
   }
 
   for (n = 0; n < 16; n++) {
-//#pragma HLS unroll
+#pragma HLS unroll
 	  FTransform_C(tmp_src[n], tmp_pred[n], tmp[n]);
   }
 
@@ -713,7 +713,7 @@ static int ReconstructIntra16(
   }
 
   for (n = 0; n < 16; n++) {
-//#pragma HLS unroll
+#pragma HLS unroll
 	  ITransformOne(tmp_pred[n], tmp[n], tmp_out[n]);
   }
 
@@ -747,7 +747,7 @@ static void VP8MatrixLoad(VP8Matrix* dst, VP8Matrix* src){
 
 static int ReconstructIntra4(int16_t levels[16], uint8_t y_p[16],
 		uint8_t y_src[16], uint8_t y_out[16], VP8Matrix y1) {
-#pragma HLS inline off
+#pragma HLS inline
 //#pragma HLS ARRAY_PARTITION variable=y1.sharpen_ complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=y1.zthresh_ complete dim=1
 //#pragma HLS ARRAY_PARTITION variable=y1.bias_ complete dim=1
@@ -892,19 +892,19 @@ static int ReconstructUV(int16_t uv_levels[8][16], uint8_t uv_p[8*16],
   }
 
   for (n = 0; n < 8; n++) {
-//#pragma HLS unroll
+#pragma HLS unroll
 	  FTransform_C(tmp_src[n], tmp_p[n], tmp[n]);
   }
 
   CorrectDCValues(top_derr, left_derr, x, y, &uv, tmp, derr);
 
   for (n = 0; n < 8; n++) {
-//#pragma HLS unroll
+#pragma HLS unroll
     nz |= QuantizeBlock_C(tmp[n], uv_levels[n], &uv) << n;
   }
 
   for (n = 0; n < 8; n++) {
-//#pragma HLS unroll
+#pragma HLS unroll
 	  ITransformOne(tmp_p[n], tmp[n], tmp_out[n]);
   }
 
@@ -1239,7 +1239,7 @@ static int GetSSE4x4(const uint8_t* a, const uint8_t* b) {
   int count = 0;
   int y, x;
   for (y = 0; y < 4; ++y) {
-//#pragma HLS unroll
+#pragma HLS unroll
     for (x = 0; x < 4; ++x) {
 #pragma HLS unroll
       const int diff = (int)a[x + y * 4] - b[x + y * 4];
@@ -1424,7 +1424,7 @@ static int VP8GetCostLuma4(int16_t tmp_levels[16]){
 	int64_t test_R = 0;
 	int x, y;
 	for (y = 0; y < 4; ++y) {
-//#pragma HLS unroll
+#pragma HLS unroll
 	  for (x = 0; x < 4; ++x) {
 #pragma HLS unroll
 		test_R += tmp_levels[y * 4 + x] * tmp_levels[y * 4 + x];
