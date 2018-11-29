@@ -16354,6 +16354,7 @@ static int VP8EncTokenLoop(VP8Encoder* const enc, int card_no) {
 	mem_out = (uint8_t*)snap_malloc(sizeof(DATA_O) * enc->mb_w_ * enc->mb_h_);
 	if (mem_out == NULL)
 		goto out_error5;
+	memset(mem_out, 0, sizeof(DATA_O) * enc->mb_w_ * enc->mb_h_);
 	
 	char device[128];
 	struct snap_card *card = NULL;
@@ -16421,6 +16422,8 @@ static int VP8EncTokenLoop(VP8Encoder* const enc, int card_no) {
 	fprintf(stdout, "SNAP computing took %lld usec\n",
 		(long long)timediff_usec(&etime, &stime));
 
+	gettimeofday(&stime, NULL);
+
 	for(y = 0; y < enc->mb_h_; y++){
 		for(x = 0; x < enc->mb_w_; x++){
 
@@ -16472,7 +16475,12 @@ static int VP8EncTokenLoop(VP8Encoder* const enc, int card_no) {
     }
 
 	enc->dqm_[0].max_edge_ = ((DATA_O*)mem_out)[enc->mb_w_ * enc->mb_h_ - 1].max_edge_;
-	  
+	
+	gettimeofday(&etime, NULL);
+	
+	fprintf(stdout, "RecordTokens took %lld usec\n",
+		(long long)timediff_usec(&etime, &stime));	
+	
 out_error2:
 	snap_detach_action(action);
 	
