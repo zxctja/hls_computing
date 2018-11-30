@@ -15045,6 +15045,9 @@ static void *WebPEncode(void *tid) {
 	VP8EncProba* proba_ = &enc[buffer_cnt]->proba_;
 	VP8BitWriter* parts_ = enc[buffer_cnt]->parts_;
 	int x, y, i, j;
+	struct timeval etime, stime;
+
+	gettimeofday(&stime, NULL);
 
 	for(y = 0; y < mb_h_; y++){
 		for(x = 0; x < mb_w_; x++){
@@ -15123,6 +15126,11 @@ static void *WebPEncode(void *tid) {
 	WebPSafeFree(it[buffer_cnt]);
 	__free(mem_out);
 	fclose(out);
+
+	gettimeofday(&etime, NULL);
+
+	fprintf(stdout, "\nArithmetic coding took %lld usec\n\n",
+			(long long)timediff_usec(&etime, &stime));
 
     if(buffer_cnt >= BUFFER_LEN - 1) buffer_cnt = 0;
 	else buffer_cnt++;
@@ -15529,7 +15537,7 @@ int main(int argc, const char *argv[]) {
 
       if (verbose) {
         const double encode_time = StopwatchReadAndReset(&stop_watch);
-        fprintf(stderr, "Time to encode picture: %.3fs\n", encode_time);
+        fprintf(stderr, "FPGA computing took: %.3fs\n", encode_time);
       }
 
       return_value = 0;
