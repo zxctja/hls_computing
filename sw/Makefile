@@ -43,7 +43,7 @@ snap_computing_objs = action_lowercase.o
 
 projs += snap_computing
 
-LDLIBS += -lm -ljpeg -lpthread
+LDLIBS += -lm -ljpeg -lpng -lpthread
 
 # If you have the host code outside of the default snap directory structure, 
 # change to /path/to/snap/actions/software.mk
