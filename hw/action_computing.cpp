@@ -1610,7 +1610,7 @@ static void PickBestIntra4(VP8SegmentInfo* const dqm, uint8_t Yin[16*16], uint8_
 	Copy_16_int16(rd->y_ac_levels[i4_], tmp_levels[best_mode]);
 	Copy_16_uint8(best_blocks[i4_], tmp_dst[best_mode]);
 
-    SetRDScore_i4(dqm->lambda_mode_, &rd_i4);
+    SetRDScore(dqm->lambda_mode_, &rd_i4);
     AddScore(rd, &rd_i4);
     rd->modes_i4[i4_] = best_mode;
     VP8IteratorRotateI4(y_left, y_top_left, y_top, i4_, top_mem,
