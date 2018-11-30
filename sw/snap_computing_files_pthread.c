@@ -15120,13 +15120,9 @@ static void *WebPEncode(void *tid) {
 
 	WebPPictureFree(picture[buffer_cnt]);
 	WebPSafeFree(picture[buffer_cnt]);
-
-	__free(mem_out);
 	WebPSafeFree(it[buffer_cnt]);
-	
-	if (out != NULL) {
-	  fclose(out);
-	}
+	__free(mem_out);
+	fclose(out);
 
     if(buffer_cnt >= BUFFER_LEN - 1) buffer_cnt = 0;
 	else buffer_cnt++;
