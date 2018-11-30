@@ -15336,9 +15336,9 @@ static void *WebPEncode(void *tid) {
 	VP8EncProba* proba_ = &enc[buffer_cnt]->proba_;
 	VP8BitWriter* parts_ = enc[buffer_cnt]->parts_;
 	int x, y, i, j;
-	struct timeval etime, stime;
+	//struct timeval etime, stime;
 
-	gettimeofday(&stime, NULL);
+	//gettimeofday(&stime, NULL);
 
 	for(y = 0; y < mb_h_; y++){
 		for(x = 0; x < mb_w_; x++){
@@ -15418,10 +15418,10 @@ static void *WebPEncode(void *tid) {
 	__free(mem_out);
 	fclose(out);
 
-	gettimeofday(&etime, NULL);
+	//gettimeofday(&etime, NULL);
 
-	fprintf(stdout, "\nArithmetic coding took %lld usec\n\n",
-			(long long)timediff_usec(&etime, &stime));
+	//fprintf(stdout, "\nArithmetic coding took %lld usec\n\n",
+	//		(long long)timediff_usec(&etime, &stime));
 
     if(buffer_cnt >= BUFFER_LEN - 1) buffer_cnt = 0;
 	else buffer_cnt++;
@@ -15528,23 +15528,26 @@ int main(int argc, const char *argv[]) {
   }
 
   int buffer_cnt = 0;
+  
+  char creat_dir[256] = {0};
+  int dir_len;
+  sprintf(creat_dir, "%swebp/", in_dir);
+  dir_len = strlen(creat_dir);
+  mkdir(creat_dir, S_IRWXU);
 
   while((entry = readdir(dir)) != NULL){
   	if(entry->d_type == 8){	
       char* dot;
-	  char in_dir_file[1024] = {0};
-	  char out_dir_file[1024] = {0};
+	  char in_dir_file[256] = {0};
+	  char out_dir_file[256] = {0};
 	  
 	  //input file 
-	  memcpy(in_dir_file, in_dir, strlen(in_dir));
-	  strcat(in_dir_file, entry->d_name);
+	  sprintf(in_dir_file, "%s%s", in_dir, entry->d_name);
 	  
 	  //output file
       dot = strrchr(entry->d_name, '.');
-	  memcpy(out_dir_file, in_dir, strlen(in_dir));
-	  strcat(out_dir_file, "webp/");
-      mkdir(out_dir_file, S_IRWXU);
-	  memcpy(out_dir_file + strlen(in_dir) + 5, entry->d_name, strlen(entry->d_name)-strlen(dot));
+	  memcpy(out_dir_file, creat_dir, dir_len);
+	  memcpy(out_dir_file + dir_len, entry->d_name, strlen(entry->d_name)-strlen(dot));
 	  strcat(out_dir_file, ".webp");
 
 	  picture[buffer_cnt] = (WebPPicture*)WebPSafeMalloc(1, sizeof(WebPPicture));
