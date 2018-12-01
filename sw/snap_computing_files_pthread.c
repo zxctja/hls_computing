@@ -15519,11 +15519,11 @@ int main(int argc, const char *argv[]) {
   //creat thread
   pthread_t threads;
   int status;
-  status=pthread_create(&threads,NULL,WebPEncode,NULL);
+  status=pthread_create(&threads, NULL, WebPEncode, NULL);
   
   if(status!=0)
   {
-	printf("pthread_create return error code%d",status);
+	printf("pthread_create return error code%d", status);
 	return return_value;
   }
 
@@ -15534,6 +15534,10 @@ int main(int argc, const char *argv[]) {
   sprintf(creat_dir, "%swebp/", in_dir);
   dir_len = strlen(creat_dir);
   mkdir(creat_dir, S_IRWXU);
+  
+  struct timeval etime, stime;
+  
+  gettimeofday(&stime, NULL);
 
   while((entry = readdir(dir)) != NULL){
   	if(entry->d_type == 8){	
@@ -15853,6 +15857,12 @@ int main(int argc, const char *argv[]) {
   	}
   }
   
+  gettimeofday(&etime, NULL);
+  
+  fprintf(stdout, "All picture coding took %lld usec\n",
+  (long long)timediff_usec(&etime, &stime));
+		
+
   closedir(dir); 
   int value;
   while(1){

@@ -69,7 +69,7 @@ int main(int argc, const char *argv[])
 	
 	gettimeofday(&etime, NULL);
 	
-    fprintf(stdout, "SNAP computing took %lld usec\n",
+    fprintf(stdout, "All picture coding took %lld usec\n",
     (long long)timediff_usec(&etime, &stime));
 		  
 	exit(0);
