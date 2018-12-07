@@ -16272,6 +16272,8 @@ static void snap_prepare_computing(struct snap_job *cjob,
 }
 
 static int VP8EncTokenLoop(VP8Encoder* const enc, int card_no) {
+  struct timeval etime, stime;
+  gettimeofday(&stime, NULL);
   // Roughly refresh the proba eight times per pass
   int max_count = (enc->mb_w_ * enc->mb_h_) >> 3;
   int num_pass_left = enc->config_->pass;
@@ -16390,11 +16392,11 @@ static int VP8EncTokenLoop(VP8Encoder* const enc, int card_no) {
   	snap_prepare_computing(&cjob, &mjob, mem_in, mem_out, mem_dqm, enc->mb_w_, enc->mb_h_);
 
 	int rc = 0;
-	struct timeval etime, stime;
+	//struct timeval etime, stime;
 	unsigned long timeout = 6000000;
 
 	// Collect the timestamp BEFORE the call of the action
-	gettimeofday(&stime, NULL);
+	//gettimeofday(&stime, NULL);
 
 	// Call the action will:
 	//    write all the registers to the action (MMIO) 
@@ -16421,8 +16423,6 @@ static int VP8EncTokenLoop(VP8Encoder* const enc, int card_no) {
 	// Display the time of the action call (MMIO registers filled + execution)
 	fprintf(stdout, "SNAP computing took %lld usec\n",
 		(long long)timediff_usec(&etime, &stime));
-
-	gettimeofday(&stime, NULL);
 
 	for(y = 0; y < enc->mb_h_; y++){
 		for(x = 0; x < enc->mb_w_; x++){
@@ -16475,11 +16475,6 @@ static int VP8EncTokenLoop(VP8Encoder* const enc, int card_no) {
     }
 
 	enc->dqm_[0].max_edge_ = ((DATA_O*)mem_out)[enc->mb_w_ * enc->mb_h_ - 1].max_edge_;
-	
-	gettimeofday(&etime, NULL);
-	
-	fprintf(stdout, "RecordTokens took %lld usec\n",
-		(long long)timediff_usec(&etime, &stime));	
 	
 out_error2:
 	snap_detach_action(action);
