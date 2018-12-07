@@ -71,7 +71,9 @@ int main(int argc, const char *argv[])
 	
     fprintf(stdout, "All picture coding took %lld usec\n",
     (long long)timediff_usec(&etime, &stime));
-		  
+	
+	closedir(dir); 	  
+	
 	exit(0);
 }
 
