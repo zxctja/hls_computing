@@ -1838,10 +1838,12 @@ void VP8Decimate_snap(uint8_t Yin[16*16], uint8_t Yout16[16*16], uint8_t Yout4[1
 
   if (rd_i4.score >= rd_i16.score) {
 	*mbtype = 1;
+    rd->nz = rd_i16.nz | rd_uv.nz;
 	Copy_16x16_int16(rd->y_ac_levels, rd_i16.y_ac_levels);
   }
   else{
     *mbtype = 0;
+    rd->nz = rd_i4.nz | rd_uv.nz;
 	Copy_16x16_int16(rd->y_ac_levels, rd_i4.y_ac_levels);
   }
 
@@ -1852,7 +1854,6 @@ void VP8Decimate_snap(uint8_t Yin[16*16], uint8_t Yout16[16*16], uint8_t Yout4[1
 
   rd->mode_i16 = rd_i16.mode_i16;
   rd->mode_uv = rd_uv.mode_uv;
-  rd->nz = rd_i16.nz | rd_i4.nz | rd_uv.nz;
 
   *is_skipped = (rd->nz == 0);
 }
