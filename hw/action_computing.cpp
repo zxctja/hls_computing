@@ -97,29 +97,13 @@ static void HorizontalPred_16(uint8_t* dst, uint8_t* left) {
 static void TrueMotion_16(uint8_t* dst, uint8_t* left, uint8_t* top, uint8_t top_left, int x, int y) {
   int i,j;
   int tmp;
-  if (x != 0) {
-    if (y != 0) {
-      for (j = 0; j < 16; ++j) {
+  for (j = 0; j < 16; ++j) {
 #pragma HLS unroll
-        for (i = 0; i < 16; ++i) {
+	for (i = 0; i < 16; ++i) {
 #pragma HLS unroll
-        	tmp = top[i] + left[j] - top_left;
-        	dst[j * 16 + i] = (tmp>0xff) ? 0xff : (tmp<0) ? 0 : (uint8_t)tmp;
-        }
-      }
-    } else {
-      HorizontalPred_16(dst, left);
-    }
-  } else {
-    // true motion without left samples (hence: with default 129 value)
-    // is equivalent to VE prediction where you just copy the top samples.
-    // Note that if top samples are not available, the default value is
-    // then 129, and not 127 as in the VerticalPred case.
-    if (y != 0) {
-      VerticalPred_16(dst, top);
-    } else {
-      Fill_16(dst, 129);
-    }
+	  tmp = top[i] + left[j] - top_left;
+	  dst[j * 16 + i] = (tmp>0xff) ? 0xff : (tmp<0) ? 0 : (uint8_t)tmp;
+	}
   }
 }
 
@@ -202,32 +186,17 @@ static void TrueMotion_8(uint8_t* dst, uint8_t* left_u, uint8_t* top_u, uint8_t 
   int i,j;
   int tmp_u;
   int tmp_v;
-  if (x != 0) {
-    if (y != 0) {
-      for (j = 0; j < 8; ++j) {
+  for (j = 0; j < 8; ++j) {
 #pragma HLS unroll
-        for (i = 0; i < 8; ++i) {
+    for (i = 0; i < 8; ++i) {
 #pragma HLS unroll
-        	tmp_u = top_u[i] + left_u[j] - top_left_u;
-        	tmp_v = top_v[i] + left_v[j] - top_left_v;
-        	dst[j * 16 + i] = (tmp_u>0xff) ? 0xff : (tmp_u<0) ? 0 : (uint8_t)tmp_u;
-        	dst[j * 16 + i + 8] = (tmp_v>0xff) ? 0xff : (tmp_v<0) ? 0 : (uint8_t)tmp_v;
-        }
-      }
-    } else {
-      HorizontalPred_8(dst, left_u, left_v);
-    }
-  } else {
-    // true motion without left samples (hence: with default 129 value)
-    // is equivalent to VE prediction where you just copy the top samples.
-    // Note that if top samples are not available, the default value is
-    // then 129, and not 127 as in the VerticalPred case.
-    if (y != 0) {
-      VerticalPred_8(dst, top_u, top_v);
-    } else {
-      Fill_8(dst, 129, 129);
+	  tmp_u = top_u[i] + left_u[j] - top_left_u;
+	  tmp_v = top_v[i] + left_v[j] - top_left_v;
+	  dst[j * 16 + i] = (tmp_u>0xff) ? 0xff : (tmp_u<0) ? 0 : (uint8_t)tmp_u;
+	  dst[j * 16 + i + 8] = (tmp_v>0xff) ? 0xff : (tmp_v<0) ? 0 : (uint8_t)tmp_v;
     }
   }
+
 }
 
 static void IntraChromaPreds_C(uint8_t UVPred[4][8*16], uint8_t left_u[8],
@@ -1955,45 +1924,6 @@ void VP8IteratorSaveBoundary_snap(uint8_t mbtype, int x, int y, int mb_w, int mb
   }
 }
 
-void SegmentInfoLoad(VP8SegmentInfo* dqm, snap_membus_t dqm_tmp[12]){
-#pragma HLS inline
-	int i;
-	for(i=0;i<16;i++){
-#pragma HLS unroll
-		dqm->y1_.q_[i] = dqm_tmp[0] >> (16 * i);
-		dqm->y1_.iq_[i] = dqm_tmp[0] >> (16 * i + 256);
-		dqm->y1_.bias_[i] = dqm_tmp[1] >> (32 * i);
-		dqm->y1_.zthresh_[i] = dqm_tmp[2] >> (32 * i);
-		dqm->y1_.sharpen_[i] = dqm_tmp[3] >> (16 * i);
-		
-		dqm->y2_.q_[i] = dqm_tmp[3] >> (16 * i + 256);
-		dqm->y2_.iq_[i] = dqm_tmp[4] >> (16 * i);
-		dqm->y2_.sharpen_[i] = dqm_tmp[6] >> (16 * i + 256);
-		
-		dqm->uv_.q_[i] = dqm_tmp[7] >> (16 * i);
-		dqm->uv_.iq_[i] = dqm_tmp[7] >> (16 * i + 256);
-		dqm->uv_.bias_[i] = dqm_tmp[8] >> (32 * i);
-		dqm->uv_.zthresh_[i] = dqm_tmp[9] >> (32 * i);
-		dqm->uv_.sharpen_[i] = dqm_tmp[10] >> (16 * i);
-	}
-	
-	for(i=0;i<8;i++){
-#pragma HLS unroll
-		dqm->y2_.bias_[i] = dqm_tmp[4] >> (32 * i + 256);
-		dqm->y2_.bias_[8 + i] = dqm_tmp[5] >> (32 * i);
-		dqm->y2_.zthresh_[i] = dqm_tmp[5] >> (32 * i + 256);
-		dqm->y2_.zthresh_[8 + i] = dqm_tmp[6] >> (32 * i);
-	}
-
-	dqm->max_edge_ = dqm_tmp[10] >> 384;
-	dqm->min_disto_ = dqm_tmp[10] >> 416;
-	dqm->lambda_i16_ = dqm_tmp[10] >> 448;
-	dqm->lambda_i4_ = dqm_tmp[10] >> 480;
-	dqm->lambda_uv_ = dqm_tmp[11];
-	dqm->lambda_mode_ = dqm_tmp[11] >> 32;
-	dqm->tlambda_ = dqm_tmp[11] >> 96;
-}
-
 void DATALoad(DATA_O* data_o, snap_membus_t data_tmp[14]){
 #pragma HLS inline
 //	data_tmp[0] = ((snap_membus_t)(ap_uint<64>)(data_o->info.D));
@@ -2465,6 +2395,55 @@ void YUVLoad(snap_membus_t YUVin[6], uint8_t Yin[16*16], uint8_t UVin[8*16]){
 	}
 }
 
+void SegmentInfoLoad(VP8SegmentInfo* dqm){
+#pragma HLS inline
+	int i;
+	uint16_t y1_q_[16]		 = {0x18,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E};
+	uint16_t y1_iq_[16] 	 = {0x1555,0x1111,0x1111,0x1111,0x1111,0x1111,0x1111,0x1111,0x1111,0x1111,0x1111,0x1111,0x1111,0x1111,0x1111,0x1111};
+	uint32_t y1_bias_[16]	 = {0xC000,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00};
+	uint32_t y1_zthresh_[16] = {0xF,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11};
+	uint16_t y1_sharpen_[16] = {0x0,0x0,0x0,0x1,0x0,0x0,0x1,0x1,0x0,0x1,0x1,0x1,0x1,0x1,0x1,0x1};
+	uint16_t y2_q_[16]		 = {0x30,0x2E,0x2E,0x2E,0x2E,0x2E,0x2E,0x2E,0x2E,0x2E,0x2E,0x2E,0x2E,0x2E,0x2E,0x2E};
+	uint16_t y2_iq_[16] 	 = {0xAAA,0xB21,0xB21,0xB21,0xB21,0xB21,0xB21,0xB21,0xB21,0xB21,0xB21,0xB21,0xB21,0xB21,0xB21,0xB21};
+	uint32_t y2_bias_[16]	 = {0xC000,0xD800,0xD800,0xD800,0xD800,0xD800,0xD800,0xD800,0xD800,0xD800,0xD800,0xD800,0xD800,0xD800,0xD800,0xD800};
+	uint32_t y2_zthresh_[16] = {0x1E,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A};
+	uint16_t y2_sharpen_[16] = {0x0};
+	uint16_t uv_q_[16]		 = {0x17,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A,0x1A};
+	uint16_t uv_iq_[16] 	 = {0x1642,0x13B1,0x13B1,0x13B1,0x13B1,0x13B1,0x13B1,0x13B1,0x13B1,0x13B1,0x13B1,0x13B1,0x13B1,0x13B1,0x13B1,0x13B1};
+	uint32_t uv_bias_[16]	 = {0xE600,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00,0xDC00};
+	uint32_t uv_zthresh_[16] = {0xD,0xE,0xE,0xE,0xE,0xE,0xE,0xE,0xE,0xE,0xE,0xE,0xE,0xE,0xE,0xE};
+	uint16_t uv_sharpen_[16] = {0x0};
+
+	for(i=0;i<16;i++){
+#pragma HLS unroll	
+	dqm->y1_.q_[i]		 = y1_q_[i];
+	dqm->y1_.iq_[i] 	 = y1_iq_[i];
+	dqm->y1_.bias_[i]	 = y1_bias_[i];
+	dqm->y1_.zthresh_[i] = y1_zthresh_[i];
+	dqm->y1_.sharpen_[i] = y1_sharpen_[i];
+	
+	dqm->y2_.q_[i]		 = y2_q_[i];;
+	dqm->y2_.iq_[i] 	 = y2_iq_[i];;
+	dqm->y2_.bias_[i]	 = y2_bias_[i];;
+	dqm->y2_.zthresh_[i] = y2_zthresh_[i];
+	dqm->y2_.sharpen_[i] = y2_sharpen_[i];
+	
+	dqm->uv_.q_[i]		 = uv_q_[i];;
+	dqm->uv_.iq_[i] 	 = uv_iq_[i];;
+	dqm->uv_.bias_[i]	 = uv_bias_[i];;
+	dqm->uv_.zthresh_[i] = uv_zthresh_[i];
+	dqm->uv_.sharpen_[i] = uv_sharpen_[i];
+	}
+
+	dqm->max_edge_	  = 0x0;
+	dqm->min_disto_   = 0x1E0;
+	dqm->lambda_i16_  = 0x18CC;
+	dqm->lambda_i4_   = 0x15;
+	dqm->lambda_uv_   = 0x1F;
+	dqm->lambda_mode_ = 0x7;
+	dqm->tlambda_	  = 0x2E;		
+}
+
 //----------------------------------------------------------------------
 //--- MAIN PROGRAM -----------------------------------------------------
 //----------------------------------------------------------------------
@@ -2493,19 +2472,17 @@ static int process_action(snap_membus_t *din_gmem,
 	uint8_t mem_top_u[1024][8];
 	uint8_t mem_top_v[1024][8];
 	snap_membus_t YUVin[6];
-	snap_membus_t dqm_tmp[12];
 	snap_membus_t data_tmp[14];
 	DError top_derr[1024];
 	DError left_derr;
-	VP8SegmentInfo dqm;
 	DATA_O data_o;
-	int x;
-	int y;
+	int x, y;
 	int mb_w;
 	int mb_h;
-	uint64_t i_idx, o_idx, dqm_idx;		
 	int i, j;
-	
+	uint64_t i_idx, o_idx;	
+	VP8SegmentInfo dqm;
+
 #pragma HLS ARRAY_PARTITION variable=YUVin complete dim=1
 #pragma HLS ARRAY_PARTITION variable=Yin complete dim=1
 #pragma HLS ARRAY_PARTITION variable=Yout16 complete dim=1
@@ -2531,7 +2508,6 @@ static int process_action(snap_membus_t *din_gmem,
 #pragma HLS ARRAY_PARTITION variable=top_derr complete dim=2
 #pragma HLS ARRAY_PARTITION variable=top_derr complete dim=3
 #pragma HLS ARRAY_PARTITION variable=left_derr complete dim=0
-#pragma HLS ARRAY_PARTITION variable=dqm_tmp complete dim=1
 #pragma HLS ARRAY_PARTITION variable=data_tmp complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm.y1_.sharpen_ complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm.y1_.zthresh_ complete dim=1
@@ -2549,12 +2525,11 @@ static int process_action(snap_membus_t *din_gmem,
 #pragma HLS ARRAY_PARTITION variable=dqm.uv_.iq_ complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm.uv_.q_ complete dim=1
 
-	i_idx = act_reg->Data.in >> ADDR_RIGHT_SHIFT;
+	i_idx = act_reg->Data.in  >> ADDR_RIGHT_SHIFT;
 	o_idx = act_reg->Data.out >> ADDR_RIGHT_SHIFT;
-	dqm_idx = act_reg->Data.dqm >> ADDR_RIGHT_SHIFT;
-	mb_w = act_reg->Data.mb_w;
-	mb_h = act_reg->Data.mb_h;
-	
+	mb_w  = act_reg->Data.mb_w;
+	mb_h  = act_reg->Data.mb_h;
+
 	for(i=0;i<20;i++){
 #pragma HLS unroll
 	  top_y[i] = 127;
@@ -2572,13 +2547,8 @@ static int process_action(snap_membus_t *din_gmem,
 	  left_u[i] = 129;
 	  left_v[i] = 129;
 	}
-
-	for(i=0;i<12;i++){//12 is sizeof(dqm)/64
-#pragma HLS pipeline
-		dqm_tmp[i] = (din_gmem + dqm_idx)[i];
-	}
-
-	SegmentInfoLoad(&dqm, dqm_tmp);
+	
+	SegmentInfoLoad(dqm);
 
 	for(y = 0; y < mb_h; y++){
 	  for(x = 0; x < mb_w; x++){
