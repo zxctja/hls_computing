@@ -38,10 +38,10 @@ endif
 
 # This is solution specific. Check if we can replace this by generics too.
 
-snap_computing: action_lowercase.o
-snap_computing_objs = action_lowercase.o
+hls_computing: action_lowercase.o
+hls_computing_objs = action_lowercase.o
 
-projs += snap_computing
+projs += hls_computing
 
 LDLIBS += -lm -ljpeg -lpng -lpthread
 
