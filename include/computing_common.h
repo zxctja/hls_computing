@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <snap_types.h>
+#include <osnap_types.h>
 #include <stdint.h>
 
 
@@ -89,9 +89,7 @@ typedef struct DATA_O{
 typedef struct computing_job {
 	uint64_t in;	/* input data */
 	uint64_t out;   /* offset table */
-	uint64_t dqm;
-	int mb_w;
-	int mb_h;
+	int mb_w_h;
 } computing_job_t;
 
 #ifdef __cplusplus
