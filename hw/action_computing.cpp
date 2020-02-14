@@ -2395,7 +2395,7 @@ void YUVLoad(snap_membus_t YUVin[6], uint8_t Yin[16*16], uint8_t UVin[8*16]){
 	}
 }
 
-void SegmentInfoLoad(VP8SegmentInfo* dqm){
+void SegmentInfoLoad(VP8SegmentInfo* dqm, snap_membus_t dqm_tmp[2]){
 #pragma HLS inline
 	int i;
 	uint16_t y1_q_[16]		 = {0x18,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E};
@@ -2473,10 +2473,12 @@ static int process_action(snap_membus_t *din_gmem,
 	uint8_t mem_top_v[1024][8];
 	snap_membus_t YUVin[6];
 	snap_membus_t data_tmp[14];
+	snap_membus_t dqm_tmp[2];
 	DError top_derr[1024];
 	DError left_derr;
 	DATA_O data_o;
 	int x, y;
+	int mb_w_h;
 	int mb_w;
 	int mb_h;
 	int i, j;
@@ -2509,6 +2511,7 @@ static int process_action(snap_membus_t *din_gmem,
 #pragma HLS ARRAY_PARTITION variable=top_derr complete dim=3
 #pragma HLS ARRAY_PARTITION variable=left_derr complete dim=0
 #pragma HLS ARRAY_PARTITION variable=data_tmp complete dim=1
+#pragma HLS ARRAY_PARTITION variable=dqm_tmp complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm.y1_.sharpen_ complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm.y1_.zthresh_ complete dim=1
 #pragma HLS ARRAY_PARTITION variable=dqm.y1_.bias_ complete dim=1
@@ -2527,8 +2530,9 @@ static int process_action(snap_membus_t *din_gmem,
 
 	i_idx = act_reg->Data.in  >> ADDR_RIGHT_SHIFT;
 	o_idx = act_reg->Data.out >> ADDR_RIGHT_SHIFT;
-	mb_w  = act_reg->Data.mb_w;
-	mb_h  = act_reg->Data.mb_h;
+	mb_w_h  = act_reg->Data.mb_w_h;
+	mb_w  = mb_w_h & 0x0000FFFF;
+	mb_h  = mb_w_h >> 16;
 
 	for(i=0;i<20;i++){
 #pragma HLS unroll
@@ -2547,7 +2551,11 @@ static int process_action(snap_membus_t *din_gmem,
 	  left_u[i] = 129;
 	  left_v[i] = 129;
 	}
-	
+	for(i=0;i<2;i++){
+#pragma HLS pipeline
+		dqm_tmp[i] = (din_gmem + i_idx)[i];
+	}
+
 	SegmentInfoLoad(dqm);
 
 	for(y = 0; y < mb_h; y++){
@@ -2555,7 +2563,7 @@ static int process_action(snap_membus_t *din_gmem,
 
 		for(i=0;i<6;i++){//6 is sizeof(Yin + UVin)/64
 #pragma HLS pipeline
-			YUVin[i] = (din_gmem + i_idx + (y * mb_w + x) * 6)[i];
+			YUVin[i] = (din_gmem + 2 + i_idx + (y * mb_w + x) * 6)[i];
 		}
 
 		YUVLoad(YUVin, Yin, UVin);
